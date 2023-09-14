@@ -1,0 +1,91 @@
+#! /bin/sh
+#
+#Copyright (c) 2011-2013 Qualcomm Technologies, Inc.  All Rights Reserved.
+#Qualcomm Technologies Proprietary and Confidential.
+
+# Foxconn_Application   init.d script to start the Data Software's Foxconn Application daemon
+
+set -e
+
+case "$1" in
+  start)
+  			#Foxocnn modify start, S.K.Yang 2016/04/22
+        isMFT=`/usr/sbin/upgrade -g mft&`
+        if [ $isMFT != "1" ]
+        then
+          echo -n "Starting Foxconn Application :Normal Mode "
+          echo "FoxconnApplication:start Normal" > /dev/kmsg
+##### Start Foxconn Application , add start #####
+        /etc/init.d/fx_download_mode
+        # monitor_qcmap.sh &
+		
+        start-stop-daemon -S -b -a 3gcm
+        start-stop-daemon -S -b -a fxpollinkey
+        start-stop-daemon -S -b -a fxui-led
+        start-stop-daemon -S -b -a fx-vbatt
+        # Foxconn delete start, eric hsieh, 2016/06/06 
+        # run it on inittab with respawn
+        # start-stop-daemon -S -b -a FX_QCMAP_IPC
+        # Foxconn delete end, eric hsieh, 2016/06/06 
+        start-stop-daemon -S -b -a traf-monitor
+        start-stop-daemon -S -b -a pmm
+        start-stop-daemon -S -b -a rjil-vvm
+        start-stop-daemon -S -b -a netrecorder
+		fx_send_data 0x80 0x21 0x63 0xEA 0x01 0x00 0x08 0x30 0x31 0x32 0x33 0x34 0x35 0x36 0x37 
+		cfg -a ConnReqUrl="null"
+		cfg -a ACSUSERNAME="null"
+		cfg -a ACSPASSWORD="null"
+        # start-stop-daemon -S -b -a cwmpCPE
+        
+# Foxconn delete start, wenfei, 2016/06/10 
+        #simlock implement in modem side
+        #start-stop-daemon -S -b -a simlock lock
+# Foxconn delete end, wenfei, 2016/06/10
+##### Start Foxconn Application , add end #####
+        else
+          echo -n "Starting Foxconn Application :	MFT Mode "
+          echo "FoxconnApplication:start MFT" > /dev/kmsg
+          /etc/init.d/fx_download_mode
+          start-stop-daemon -S -b -a 3gcm
+          start-stop-daemon -S -b -a fxpollinkey
+          ##start-stop-daemon -S -b -a fxui-led          
+          start-stop-daemon -S -b -a fx-vbatt
+          # Foxconn delete start, eric hsieh, 2016/06/06 
+          # run it on inittab with respawn
+          # start-stop-daemon -S -b -a FX_QCMAP_IPC
+          # Foxconn delete end, eric hsieh, 2016/06/06 
+        fi
+        echo "done"
+        #Foxocnn modify end, S.K.Yang 2016/04/22
+        ;;
+  stop)
+        echo -n "Stopping Foxconn Application: "
+##### Stop Foxconn Application , add start #####
+        start-stop-daemon -K -n fxpollinkey
+        start-stop-daemon -K -n fxui-led
+        start-stop-daemon -K -n fx-vbatt
+        start-stop-daemon -K -n 3gcm
+        # Foxconn delete start, eric hsieh, 2016/06/06 
+        # run it on inittab with respawn
+        # start-stop-daemon -K -n FX_QCMAP_IPC
+        # Foxconn delete end, eric hsieh, 2016/06/06 
+        start-stop-daemon -K -n traf-monitor
+        start-stop-daemon -K -n pmm
+        start-stop-daemon -K -n rjil-vvm
+        start-stop-daemon -K -n netrecorder
+        
+        start-stop-daemon -K -n cwmpCPE
+##### Stop Foxconn Application , add end #####
+        echo "done"
+        ;;
+  restart)
+        $0 stop
+        $0 start
+        ;;
+  *)
+        echo "Usage Foxconn_Application { start | stop | restart}" >&2
+        exit 1
+        ;;
+esac
+
+exit 0

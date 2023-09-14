@@ -1,0 +1,32 @@
+
+DUMP_TO_KMSG=/dev/kmsg
+
+## ------------------------------------------------------------
+## Read the module parameter
+## ------------------------------------------------------------
+action=$1
+
+if [ "${action}" == "sta_dhcp_ok" ]; then
+
+	echo "------------------------------------------------------"	> $DUMP_TO_KMSG
+	echo "fx_signal:: STA DHCP OK"									> $DUMP_TO_KMSG
+	echo "------------------------------------------------------"	> $DUMP_TO_KMSG
+
+	## ------------------------------------------------------------
+	## Send signal to fx_wpa_app
+	## ------------------------------------------------------------
+	pidlist=`ps | grep 'fx_wpa_app -i wlan0' | cut -b1-5`
+	for j in $pidlist
+	do
+		kill -s SIGTSTP $j
+		echo "fx_signal:: PID of 'fx_wpa_app' is ${j}"				> $DUMP_TO_KMSG
+		break
+	done
+
+else
+
+	echo "fx_signal:: action is unknown"
+
+fi
+
+

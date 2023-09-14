@@ -1,0 +1,61 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>~*title_reboot~</title>
+<meta http-equiv="Content-Type" content="text/html; charset=big5">
+<link href="/css/stylesheet.css" rel="stylesheet" type="text/css" />
+<script language="JavaScript" src="/js/common.js"></script>
+
+<script language="JavaScript">
+
+var xhr_reboot = null;
+
+function reboot_callback()
+{
+}
+
+function reboot_request()
+{
+     // send reboot request
+     if( xhr_reboot == null )
+     {
+        xhr_reboot = createXHR();
+     }
+
+     if (xhr_reboot)
+     {
+		var RequestVerifyToken = document.getElementById("RequestVerifyToken");
+        xhr_reboot.open("GET", "/cgi-bin/en-jio/reboot.html?RequestVerifyToken=" + RequestVerifyToken.value);
+        xhr_reboot.onreadystatechange = reboot_callback;
+        xhr_reboot.send(null);
+     }
+}
+
+function loading()
+{
+	reboot_request();
+    setTimeout("redirect_top(\"/\")", REBOOT_REDIRECT_SECONDS*1000);
+}
+</script>
+
+<body onLoad="loading();"> 
+<form name="myForm" method="post" action="/cgi-bin/en-jio/logout.html">
+<input type="hidden" id="RequestVerifyToken" name="RequestVerifyToken" value="~*token~">
+<div class="userContent" id="userContent">
+<div class="maintitle">
+<label id="title" class="title">~*title_reboot~</label>
+</div>
+<hr color="#D8D8D8" size="1px" width="100%"> </hr>
+<div id="Content" class="content"> 
+		<div id="upgradeModalBox2">			
+			<div align="center">
+				<label id="lReboot">Reboot is in progress. Please wait...</label>
+				<br><br>
+				<img src="/images/loading.gif" width="100" height="100"> 
+			</div>
+		</div>
+</div>
+</div>
+</form>
+</body>
+</html>

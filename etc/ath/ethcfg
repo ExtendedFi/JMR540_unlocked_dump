@@ -1,0 +1,103 @@
+###################################################################################
+##  ethcfg
+## 
+##  Configuration file for Ethernet.
+##  ETH_GROUP_EMPTY is to avoid duplicate default setting overhead
+##  Put configuration file under /etc/ath/ with filename as *cfg (e.g. ethcfg)
+###################################################################################
+
+ETH_GROUP_EMPTY=`cfg -v ETH_GROUP_EMPTY`
+
+if [ "$ETH_GROUP_EMPTY" != "NO" ]; then
+
+  if [ "$ETH_GROUP_EMPTY" = "PARTIAL" ]; then
+  
+  # Get the current settings from flash/cache area
+  cfg -e > /tmp/vars.$$
+  . /tmp/vars.$$
+  rm /tmp/vars.$$
+  
+  fi
+
+# Set config items as default values
+
+# in-use uplink when SM_ENABLE=0: "ether", "wifi", "3g", or "auto"
+cfg -a WAN_INUSE=${WAN_INUSE:="auto"}
+
+# set wan ethernet mode: "bridge", "router", "auto"
+#cfg -a WAN_MODE_WIRE=${WAN_MODE_WIRE:="bridge"}
+#cfg -a WAN_DHCPC_ENABLE=${WAN_DHCPC_ENABLE:="1"}
+cfg -a MTU_SIZE=${MTU_SIZE:=1500}
+cfg -a ETH_IS_LAN=${ETH_IS_LAN:="0"}
+
+# lan configuration
+cfg -a AP_IPADDR=${AP_IPADDR:="192.168.255.1"}
+cfg -a AP_NETMASK=${AP_NETMASK:="255.255.255.0"}
+
+# set wan to value: "static", "dhcp", "bridged", "uplinkmgr"
+#cfg -a WAN_MODE=${WAN_MODE:="dhcp"}
+
+# dhcp server configuration
+cfg -a DHCPS_ENABLE=${DHCPS_ENABLE:=1}
+cfg -a DHCPS_START=${DHCPS_START:="192.168.255.2"}
+cfg -a DHCPS_END=${DHCPS_END:="192.168.255.254"}
+cfg -a DHCPS_LEASE=${DHCPS_LEASE:=86400}
+
+#cfg -a LAN_COMM_FORBID=${LAN_COMM_FORBID:=0}
+
+# session manager configuration
+#cfg -a SM_DEBUG=${SM_DEBUG:="7"}
+#cfg -a SM_ENABLE=${SM_ENABLE:="0"}
+cfg -a SM_MONI_METHOD=${SM_MONI_METHOD:="1"}
+# cfg -a SM_MONI_PING_IP1=${SM_MONI_PING_IP1:=""}
+cfg -a SM_MONI_QUERY_ADDR1=${SM_MONI_QUERY_ADDR1:="www.softbank.co.jp"}
+#cfg -a SM_IDLE_TIMEOUT=${SM_IDLE_TIMEOUT:=5}
+#cfg -a USBMODE_SWITCH=${USBMODE_SWITCH:=1}
+#cfg -a SM_WIFISTA_SWITCH=${SM_WIFISTA_SWITCH:=1}
+
+cfg -a SM_MONI_QUERY_TIMEOUT=${SM_MONI_QUERY_TIMEOUT:=1}
+cfg -a SM_MONI_QUERY_RETRY=${SM_MONI_QUERY_RETRY:=3}
+cfg -a SM_MONI_QUERY_PROTOCOL=${SM_MONI_QUERY_PROTOCOL:=0}
+
+cfg -a BRIDGE_LAN_INTERFACE=${BRIDGE_LAN_INTERFACE:="0"}
+
+# Lan2 ip address
+cfg -a AP_IPADDR_2=${AP_IPADDR_2:="192.168.5.1"}
+cfg -a AP_NETMASK_2=${AP_NETMASK_2:="255.255.255.0"}
+
+cfg -a DHCPS_ENABLE_2=${AP_DHCPS_ENABLE_2:=1}
+cfg -a DHCPS_START_2=${AP_DHCPS_START_2:="192.168.5.2"}
+cfg -a DHCPS_END_2=${AP_DHCPS_END_2:="192.168.5.254"}
+cfg -a DHCPS_LEASE_2=${AP_DHCPS_LEASE_2:=86400}
+
+# USB tethering ip address
+cfg -a USB_TETHERING_IFS_NAME=${USB_TETHERING_IFS_NAME:="rndis0"}
+cfg -a USB_TETHERING_IFS_STATUS=${USB_TETHERING_IFS_STATUS:="0"}
+
+cfg -a USB_TETHERING_IPADDR=${USB_TETHERING_IPADDR:="192.168.3.1"}
+cfg -a USB_TETHERING_NETMASK=${USB_TETHERING_NETMASK:="255.255.255.0"}
+
+cfg -a DHCPS_ENABLE_USB_TETHERING=${DHCPS_ENABLE_USB_TETHERING:=1}
+cfg -a DHCPS_START_USB_TETHERING=${DHCPS_START_USB_TETHERING:="192.168.3.2"}
+cfg -a DHCPS_END_USB_TETHERING=${DHCPS_END_USB_TETHERING:="192.168.3.100"}
+cfg -a DHCPS_LEASE_USB_TETHERING=${DHCPS_LEASE_USB_TETHERING:=86400}
+
+# VPN passthrough
+cfg -a VPN_PASSTHROUGH_PPTP_STATUS=${VPN_PASSTHROUGH_PPTP_STATUS:="enable"}
+cfg -a VPN_PASSTHROUGH_L2TP_STATUS=${VPN_PASSTHROUGH_L2TP_STATUS:="enable"}
+cfg -a VPN_PASSTHROUGH_IPSEC_STATUS=${VPN_PASSTHROUGH_IPSEC_STATUS:="enable"}
+
+#DMZ
+cfg -a DMZ_ENABLE=${DMZ_ENABLE:="0"}
+
+cfg -a WAN_ENABLE_IPV6=${WAN_ENABLE_IPV6:="1"}
+cfg -a BRIDGE_LAN_INTERFACE_IPV6=${BRIDGE_LAN_INTERFACE_IPV6:="1"}
+
+# Now it's non-empty
+cfg -a ETH_GROUP_EMPTY=NO
+
+fi
+
+# session manager configuration should be applied after FW upgrade
+ETH_GROUP_WITH_IMAGE=`cfg -v ETH_GROUP_WITH_IMAGE`
+

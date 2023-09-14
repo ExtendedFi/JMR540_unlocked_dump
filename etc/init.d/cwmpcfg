@@ -1,0 +1,25 @@
+#! /bin/sh
+#
+# This is an init script for openembedded
+# Copy it to /etc/init.d/cfg and type
+# > update-rc.d cfg start 15 2 3 4 5 .
+#
+
+cfg=/bin/cfg
+test -x "$cfg" || exit 0
+
+
+case "$1" in
+  # Initialize cfg on boot up
+  start)
+    if [ -f "/etc/cwmpcfg" ]
+    then
+      . /etc/cwmpcfg
+    fi
+    ;;
+  *)
+    echo "Usage: /etc/init.d/cwmpcfg start"
+    exit 1
+esac
+
+exit 0

@@ -1,0 +1,39 @@
+
+###################################################################################
+##  cwmpcfg 
+## 
+##  booting script for CWMP.
+##################################################################################
+default_path="/etc/cfg/main"
+tmp_path="/foxusr/cwmp/main"
+cfg_files="project.cfg cwmp_V01.cfg deviceDNS.cfg deviceEth.cfg deviceIP.cfg deviceInfo.cfg deviceWIFI.cfg userInterface.cfg"
+
+# Foxconn - 20160316 - Wilson: output to cwmpEvent.dat for broker
+cfg -s | grep TRSTATUS_ > /foxtmp/cwmpEvent.dat
+
+# Foxconn - 20160414 - Wilson
+if [ ! -d "/foxusr/cwmp" ]
+then
+  mkdir "/foxusr/cwmp"
+  cp "$default_path/attribute.pri" "/foxusr/cwmp/attribute.pri"
+else
+  if [ ! -f "/foxusr/cwmp/attribute.pri" ]
+  then
+    cp "$default_path/attribute.pri" "/foxusr/cwmp/attribute.pri"
+    chmod a+w "/foxusr/cwmp/attribute.pri"
+  fi
+fi
+
+if [ ! -d "$tmp_path" ]
+then
+    mkdir -p "$tmp_path"
+fi
+
+for i in $cfg_files
+do
+    if [ ! -f "$tmp_path/$i" ] || [ ! -s "$tmp_path/$i" ] 
+    then
+        cp "$default_path/$i" "$tmp_path/$i"
+        chmod a+w "$tmp_path/$i"
+    fi
+done

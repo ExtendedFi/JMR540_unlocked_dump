@@ -1,0 +1,53 @@
+
+DUMP_TO_KMSG=/dev/kmsg
+
+
+## ------------------------------------------------------------
+## Check if in progress
+## ------------------------------------------------------------
+FX_AP_RESTART_FILE=`cat /tmp/fx_ap_restart`
+echo "fx_ap_restart:: FX_AP_RESTART_FILE=${FX_AP_RESTART_FILE}"
+if [ "${FX_AP_RESTART_FILE}" == "1" ]; then
+	echo "fx_ap_restart:: another call in progress, exit!"		> $DUMP_TO_KMSG
+	exit 0
+else
+	echo "fx_ap_restart:: lock script call"						> $DUMP_TO_KMSG
+	echo 1 > /tmp/fx_ap_restart
+fi
+
+
+## ------------------------------------------------------------
+## Read the module parameter
+## ------------------------------------------------------------
+caller=$1
+action=$2
+echo "fx_ap_restart:: caller=${caller} action=${action}"		> $DUMP_TO_KMSG
+
+
+## ------------------------------------------------------------
+## Start/stop Wi-Fi AP/STA by QCMAP 
+## ------------------------------------------------------------
+if [ "${action}" == "0" ]; then
+
+	echo "fx_ap_restart:: stop Wi-Fi AP/STA"					> $DUMP_TO_KMSG
+	internet -l en -a wlan_disable
+
+else if [  "${action}" == "1" -o "${action}" == "2" ]; then
+
+	echo "fx_ap_restart:: re-start Wi-Fi AP/STA"					> $DUMP_TO_KMSG
+	internet -l en -a wlan_disable
+	internet -l en -a wlan_enable
+
+else
+	echo "fx_ap_restart:: action is unknown"
+fi
+fi
+
+
+## ------------------------------------------------------------
+## End
+## ------------------------------------------------------------
+echo "fx_ap_restart:: release script call"
+echo 0 > /tmp/fx_ap_restart
+
+

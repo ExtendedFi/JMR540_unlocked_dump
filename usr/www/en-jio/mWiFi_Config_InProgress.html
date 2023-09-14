@@ -1,0 +1,100 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>WiFi Configuration</title>
+<meta http-equiv="Content-Type" content="text/html; charset=big5">
+<link href="/css/stylesheet.css" rel="stylesheet" type="text/css" />
+<script language="JavaScript" src="/js/validate.js"></script>
+<script language="JavaScript" src="/js/common.js"></script>
+<script language="JavaScript">
+var xhr_restore = null;
+
+function restart_callback()
+{
+	if (xhr_restore == null)
+	{
+		redirect("/cgi-bin/en-jio/mWiFi_Config.html");
+		return;		
+	}
+
+	if( xhr_restore.readyState == 4 )
+	{
+		if( xhr_restore.status == 200 )
+		{
+			var response_text = xhr_restore.responseText;			
+			if( response_text != null && response_text.length > 0 )
+			{	
+				response_text = escape_nl( response_text );
+				var json_obj = eval("("+response_text+")");				
+                if (json_obj.result == true)
+                {					
+				   if(json_obj.text == 1)
+				   {
+						redirect("/cgi-bin/en-jio/mWiFi_Config.html");
+						return;
+				   }
+				   else
+				   {
+					 setTimeout( "restart_request()", 1000 );
+				   }
+                }
+			}   			
+		}
+		else
+		{
+			setTimeout( "restart_request()", 1000 );
+		}
+	}	
+}
+
+function restart_request()
+{
+    if (xhr_restore == null)
+    {
+        xhr_restore = createXHR();
+    }
+
+    if (xhr_restore)
+    {
+        xhr_restore.open("GET", "/cgi-bin/en-jio/mWiFi_Config_InProgressAjax.html");
+        xhr_restore.onreadystatechange = restart_callback;
+        xhr_restore.send(null);
+    }
+}
+
+function update_content()
+{
+    var ap_enable = "~*AP_ENABLE~";
+	if(ap_enable == 0)
+		setTimeout( "restart_request()", 2000 );
+	else
+	    setTimeout( "restart_request()", 4000 );
+		
+	setTimeout("redirect(\"/cgi-bin/en-jio/mWiFi_Config.html\")", 30000);
+}
+</script>
+
+</head>
+
+<body onLoad="update_content();" >
+<div class="userContent" id="userContent">
+<div class="maintitle">
+<label id="title" class="title">Wi-Fi Configuration</label>
+</div>
+<hr color="#D8D8D8" size="1px" width="100%"> </hr>
+<div id="Content" class="content"> 
+	 <div id="divPrimaryNetworkRestarting" align="left">
+		<label class="warm" id="lPassErrorMesPN" style="margin-left:25px;margin-bottom:2px">Apply new Wi-Fi settings now. Please wait for several seconds to activate Wi-Fi function.</label>
+        <label class="warm" id="lPassErrorMesPN" style="margin-left:25px;margin-bottom:2px">You may need to change the Wi-Fi password of your devices in order to connect to your JioFi3.
+		</label>
+		<label class="warm" id="lPassErrorMesPN" style="margin-left:25px">If this page is not refreshed in one minute correctly, please manually connect your devices to JioFi3 and login to Web UI again.
+		</label>	
+		<br><br>
+		<div align="center">		
+		<img src="/images/loading.gif" width="100" height="100"> 	
+		</div>
+	</div>
+</div>
+</div>
+</body>
+</html>	

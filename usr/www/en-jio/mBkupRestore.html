@@ -1,0 +1,204 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Back & Restore</title>
+<meta http-equiv="Content-Type" content="text/html; charset=big5">
+<link href="/css/stylesheet.css" rel="stylesheet" type="text/css" />
+<script language="JavaScript" src="/js/common.js"></script>
+<script language="JavaScript" src="/js/swipe.js"></script>
+<script language="JavaScript">
+var uploading = 0;
+var fileSize = 0;
+var MAX_RESTORE_FILE_SIZE_128KB=131072;
+var mySwipe;
+
+function getFile()
+{
+	var isSafari = Object.prototype.toString.call(window.HTMLElement).indexOf('Constructor') > 0;
+	
+	var link = document.createElement("a");
+	link.href = "/settings.xml";
+
+	if (isSafari == true) 
+	{
+		//Dispatching click event.
+		if (document.createEvent) {
+			var e = document.createEvent('MouseEvents');
+			e.initEvent('click' ,true ,true);
+			link.dispatchEvent(e);
+		}
+	}
+	else
+	{
+	    link.download = "settings.xml";
+	    document.body.appendChild(link);
+	    link.click();
+	    document.body.removeChild(link);
+	    delete link;
+	}
+}
+
+function BackupConfig()
+{
+	document.forms["Backup"].submit();
+	return true;	
+}
+
+function RestoreConfig()
+{
+    var RestoreFile = document.getElementById( "restoreFile" );
+    var UPLOAD_ACTION = document.getElementById( "UPLOAD_ACTION" );	
+	
+    if( RestoreFile.value == "" )
+        alert( "Please select configuration file" );
+    else
+    {             
+		fileSize = RestoreFile.files.item(0).size;
+		if((fileSize > 0) && ( fileSize<= MAX_RESTORE_FILE_SIZE_128KB))
+		{
+			if( uploading == 0 )
+			{			   
+			   if(isMobileWeb() == 1)
+				removeSwipe();
+			   //setTimeout("firmware_update_query_request();", POLLING_FW_STATUS_SECONDS*1000);
+			   document.getElementById('BackupConfig').style.display = 'none';	
+			   document.getElementById('RestoreConfig').style.display = 'none';	
+			   document.getElementById('restoreModalBox').style.display = 'block';			   
+			   document.forms["Restore"].submit();
+			   UPLOAD_ACTION.value = "Cancel";
+			   uploading = 1;
+			}
+			else
+			{
+				uploading = 0;
+				UPLOAD_ACTION.value = "Restore";
+				Restore.reset();
+			}
+		}
+		else
+		{
+			document.getElementById("lRestoreErrorMes").style.display = "block";
+		}
+    }
+	return true;	
+}
+
+function getfileName()
+{
+	   var filename;
+	   var pathandfile=document.getElementById("restoreFile").value;
+	   var last=pathandfile.lastIndexOf("\\");
+	   
+	   if(last == -1)
+	   	  filename=pathandfile;
+	   else
+	   	filename=pathandfile.substring(last+1,pathandfile.length);
+	   
+	    document.getElementById("filename").value=filename;   
+}
+
+function fileBrowser()
+{
+    var fwid = document.getElementById( "restoreFile" );
+    fwid.click();
+}
+
+function update_content()
+{
+	var msg = "~*PRE_MSG~";	
+	if(msg != "")
+	{
+		if(msg == "1")
+		{
+			getFile();
+		}
+		else if(msg == "success")
+		{
+			if(isMobileWeb() == 1)
+				removeSwipe();
+			document.getElementById('lRestore').style.display = 'none';	
+			document.getElementById('BackupConfig').style.display = 'none';	
+			document.getElementById('RestoreConfig').style.display = 'none';	
+			document.getElementById('restoreModalBox').style.display = 'block';	
+			document.getElementById('lReboot').style.display = 'block';			
+			setTimeout("redirect_top(\"/\")", REBOOT_REDIRECT_SECONDS*1000);
+			return;
+		}
+		else if(msg == "restore")
+		{
+			document.getElementById("lRestoreErrorMes").style.display = "block";			
+		}
+		else if(msg == "backup")
+		{
+			document.getElementById("lBackupErrorMes").style.display = "block";
+		}		
+	}
+
+	document.getElementById('BackupConfig').style.display = 'block';	
+	document.getElementById('RestoreConfig').style.display = 'block';
+	mySwipe = leftSwipe("mainContent", "mangt", null);
+}
+function removeSwipe()
+{
+    mySwipe.unhookEventListener(document.getElementById("mainContent"),mySwipe);
+}
+</script>
+</head>
+
+<body onLoad="update_content();"> 
+<div class="mainContent" id="mainContent">
+<div class="maintitle">
+<label id="title" class="title">Back & Restore</label>
+</div>
+<hr color="#D8D8D8" size="1px" width="100%"> </hr>
+<div id="Content" class="upgradeconetnt">  
+	<div id="BackupConfig" style="display: none">
+		<form name="Backup" method="post" action="/cgi-bin/en-jio/mBkupCofig_Apply.html">
+			<input type="hidden" name="RequestVerifyToken" value="~*token~">
+				<div style="padding-bottom:18px">
+				<label id="title" class="title" style="color:#000000; font-weight:bold; font-size:14px; margin-top:0;">Backup Configuration</label>
+				</div>			
+			<div style="padding-bottom:5px">
+			<label id="lResotreFactSettingText">Backup current settings.</label>
+			</div>
+			<label class="error" id="lBackupErrorMes" style="display: none">Backup failure</label>
+			<div class="buttonStyle" align="left"> 
+			<input name="DOWNLOAD_ACTION" id="DOWNLOAD_ACTION" value="Backup" onclick="BackupConfig()" type="button">
+			</div>			
+		</form>
+		</div>	
+		<div id="RestoreConfig" style="display: none">
+			<br style="clear:both">
+			<br style="clear:both">		
+			<form name="Restore" method="post" action="/cgi-bin/en-jio/mRestoreCofig_Apply.html" enctype="multipart/form-data">
+				<input type="hidden" name="RequestVerifyToken" value="~*token~">
+				<div style="padding-bottom:18px">
+				<label id="title" class="title" style="color:#000000; font-weight:bold; font-size:14px; margin-top:0;">Restore Configuration</label>
+				</div>
+				<table>
+					<!--td><label class="subtt2" style="margin-bottom:8px;font-size:14px">Software Image:</label></td-->
+					<td>
+					<div class="file-box">
+					<input id="restoreFile" name="settings.xml" class="file" onchange="getfileName()" type="file" style="cursor:pointer">
+					<input id="filename" class="txt" type="text">  
+					<input class="btnWtn" value="Browse" type="button" onclick="fileBrowser()">  
+					<label class="error" id="lrestoreforbidden" style="display: none"></label>
+					</div>			
+					</td>		
+				</table>
+				<label class="error" id="lRestoreErrorMes" style="display: none">Restore failure</label>
+				<div class="buttonStyle" align="left"> 
+				<input name="UPLOAD_ACTION" id="UPLOAD_ACTION" value="Restore" onclick="RestoreConfig()" type="button">
+				</div>
+			</form>
+		</div>	
+		<div align="center" id="restoreModalBox" style="display: none">  
+		<label id="lReboot" style="display: none">Reboot is in progress. Please wait...</label>
+		<label id="lRestore">Restore is in progress. Please wait...</label>
+		<br><br>		
+		<img src="/images/loading.gif" width="100" height="100"> 	
+		</div>	
+</div>
+</div>
+</body>
+</html>

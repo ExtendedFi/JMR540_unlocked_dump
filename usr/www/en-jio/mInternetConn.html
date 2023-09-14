@@ -1,0 +1,208 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Internet Protocol Settings</title>
+<meta http-equiv="Content-Type" content="text/html; charset=big5">
+<link href="/css/stylesheet.css" rel="stylesheet" type="text/css" />
+<link href="/css/elements.css" rel="stylesheet" type="text/css" />
+<script language="JavaScript" src="/js/validate.js"></script>
+<script language="JavaScript" src="/js/common.js"></script>
+<script language="JavaScript" src="/js/message.js"></script>
+<script language="JavaScript" src="/js/swipe.js"></script>
+<script language="JavaScript">
+var apn_list = {"name":"Profile1", "active": "", "apn":""};
+var ipv4_support = "~*ipv4_support~";
+var ipv6_support = "~*ipv6_support~";
+var new_apn_name="";
+var new_ip_type=0;
+var old_autoOrManual = 0;
+var needToReboot = 0;
+
+function isValidApnStr(s) {
+  var i;
+  for (i = 0; i < s.length; i++) {
+    var c = s.charAt(i);
+    if (!(isLetter(c) || isDigit(c) || c =='-')) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function modify_validate_all()
+{
+    //alert user it will reboot.
+    var PROFILE_APN_NAME  = document.getElementById("PROFILE_APN_NAME").value;   
+	var PROFILE_IP_TYPE  = document.getElementById("PROFILE_IP_TYPE");	
+	var apn_name = apn_list.apn;	
+	var ip_type = 0;
+	if( (ipv4_support=="1") && (ipv6_support=="1"))
+	{
+		ip_type = 0;
+	}
+	else if(ipv6_support=="1")
+	{
+		ip_type = 2;
+	}
+	else//default
+	{
+		ip_type = 1;
+	}	
+	new_apn_name=PROFILE_APN_NAME;
+	new_ip_type=PROFILE_IP_TYPE.selectedIndex;
+	
+	if( (apn_name != PROFILE_APN_NAME) || (ip_type != PROFILE_IP_TYPE.selectedIndex))
+	{
+		//document.myAPNForm.submit();
+		needToReboot = 1;
+	}
+
+	return true;	
+}
+
+function ApnCheckClick()
+{
+	if (document.getElementById("AutoConfigureAPN").selectedIndex == 0)
+		document.getElementById("PDNbtn").style.display = "none";
+	else
+	{
+	 	document.getElementById("PDNbtn").style.display = "block";    
+	}
+}
+
+function applyInterNetConn()
+{
+	var PROFILE_APN_NAME  = document.getElementById("PROFILE_APN_NAME").value;
+	var invalid_apn_name_ims = "ims";
+
+	if(document.getElementById("AutoConfigureAPN").value == "0")
+	{
+	if(PROFILE_APN_NAME.length > 60)
+	{
+		alert("The maximum length of APN name is 60.");
+		return;
+	}
+	//valiate apn name
+	if(isValidApnStr(PROFILE_APN_NAME) == false)
+	{
+		alert("The input character is invalid. Only alphabetic characters (A-Z and a-z), digits (0-9), and the hyphen (-) are valid for APN name.");
+		return;
+	}	
+
+	if(PROFILE_APN_NAME.toLocaleLowerCase() == invalid_apn_name_ims.toLocaleLowerCase())
+	{
+		alert('"' + PROFILE_APN_NAME + '" is invalid APN name.');
+		return;
+	}
+	
+	modify_validate_all();
+		if((old_autoOrManual == true) || (needToReboot == 1))
+			document.adminform.submit();
+	}
+	else
+	{
+		if((old_autoOrManual == false) || (needToReboot == 1))
+			document.adminform.submit();	
+	}
+}
+
+function update_content()
+{  
+    var PROFILE_APN_NAME   = document.getElementById("PROFILE_APN_NAME");
+	var PROFILE_IP_TYPE	    = document.getElementById("PROFILE_IP_TYPE");
+
+	apn_list.active="~*PROFILE_APN_ACTIVE:0~";
+	apn_list.apn="~*PROFILE_APN_NAME~";
+
+	if(apn_list.active == "0")
+	{
+		document.getElementById("AutoConfigureAPN").selectedIndex = 0;
+		document.getElementById("PDNbtn").style.display = "none";
+	}
+	else
+	{
+		document.getElementById("AutoConfigureAPN").selectedIndex = 1;
+		document.getElementById("PDNbtn").style.display = "block";
+	}
+	
+	
+	PROFILE_APN_NAME.value = apn_list.apn;
+
+	if( (ipv4_support=="1") && (ipv6_support=="1"))
+	{
+		PROFILE_IP_TYPE.selectedIndex = 0;
+	}
+	else if(ipv6_support=="1")
+	{
+		PROFILE_IP_TYPE.selectedIndex = 2;
+	}
+	else
+	{
+		PROFILE_IP_TYPE.selectedIndex = 1;
+	}
+
+	new_apn_name=PROFILE_APN_NAME.value;
+	new_ip_type=PROFILE_IP_TYPE.selectedIndex;
+	old_autoOrManual = document.getElementById("AutoConfigureAPN").value;
+	leftSwipe("mainContent", "network", null);
+}
+
+</script>
+</head>
+
+<body onLoad="update_content();"> 
+<div class="mainContent" id="mainContent">
+<div class="maintitle">
+<label id="title" class="title">Internet Protocol Settings</label>
+</div>
+<hr color="#D8D8D8" size="1px" width="100%">
+<div id="Content" class="content">
+<div id="pdn_settings">
+<form name="adminform" method="post" action="/cgi-bin/en-jio/mInternetConn_Apply.html">
+	<input type="hidden" name="RequestVerifyToken" value="~*token~">    
+	<div>
+	<label id="pHostName" class="subttl">Host Name:</label>jiofi.local.html
+	</div>	
+	<div>
+	<label id="pHostIpAddr" class="subttl">Host IP Address:</label>~*routerIP~ 	
+	</div>
+	<div class="inlineDiv">
+	<label id="pHostSubnetMask" class="subttl">Host Subnet Mask:</label>~*routermask~		
+	</div>
+	<div id="Cellular_div" style="display: block;">
+		<div id="PDP_default">
+		<br>
+			<label id="lPDP_default" class="title" style="margin-bottom:8px;">Default PDN Connection</label>
+			<div id="apnConfigOption">
+			<label id="lPDP_default" class="subttl">APN for network attach:</label>
+			<select name="AutoConfigureAPN" id="AutoConfigureAPN" onchange="ApnCheckClick()">
+			<option value="1">Automatic</option>
+			<option value="0">Manual</option>	
+			</select>
+			</div>
+			<div id="PDNbtn">
+			<label id="lLteAPN" class="subttl">APN name:</label>
+			<input id="PROFILE_APN_NAME" name="PROFILE_APN_NAME" size="25" type="text" maxLength="60" style="margin-left:3px;">
+			<br style="clear:both">
+			<label id="lLteAPNIpType" class="subttl">IP Type:</label>
+			<select id="PROFILE_IP_TYPE" name="PROFILE_IP_TYPE">
+			<option value="ipv4v6">IPv4v6</option>
+			<option value="ipv4">IPv4</option>
+			<option value="ipv6">IPv6</option>
+			</select>
+			</div>			
+		</div>
+	</div>
+	<br>
+	<em style="margin-left:0px;color:red;"><b>Note:</b><br>After clicking the Save button, this router will reboot automatically for the modified settings to take effect.</em>
+    <div class="formBox" id="divFormBox"></div>
+    <div class="buttonStyle" id="divSaveButton" align="left">
+	<input id="btUpdate" value="Save" onclick="applyInterNetConn()" type="button">
+    </div>	
+</form>	
+</div>
+</div>
+</div>
+ 
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Language Settings</title>
+<meta http-equiv="Content-Type" content="text/html; charset=big5">
+<link href="/css/stylesheet.css" rel="stylesheet" type="text/css" />
+<script language="JavaScript" src="/js/swipe.js"></script>
+<script language="JavaScript" src="/js/common.js"></script>
+<script language="JavaScript">
+function LanguagedropdownChanged()
+{
+    var LANGUAGE = document.getElementById("Languagedropdown");
+
+    switch( LANGUAGE.value )
+    {
+        case "en":
+			alert("English version.");
+            break;
+
+        case "ch":
+           alert("chinese version.");
+           break;
+    }
+}
+
+function update_content()
+{
+	leftSwipe("userContent", "mangt", null);
+}
+</script>
+</head>
+
+<body class="StatusBody" onLoad="update_content();"> 
+<form name="myForm" method="post" action="">
+<input type="hidden" name="RequestVerifyToken" value="~*token~">
+<div class="userContent" id="userContent">
+<div class="maintitle">
+<label id="title" class="title">Language Setting</label>
+</div>
+<hr color="#D8D8D8" size="1px" width="100%"> </hr>
+<div id="Content" class="content">  
+	<div style="padding-bottom:10px">
+	<label id="lLanguage" class="subttl">Language Setting:</label>	
+	<select id="Languagedropdown" onchange="LanguagedropdownChanged()">
+		<option selected="selected" id="dropdown_English" value="en">English</option>
+	</select>
+	</div>
+	<div style="display:none">
+		<div align="right">
+		<span class="btnWrp"><input id="btUpdate" value="Save" onclick="setData()" type="button"></span>
+		</div>
+	</div>
+</div>
+</div>
+</form>
+</body>
+</html>

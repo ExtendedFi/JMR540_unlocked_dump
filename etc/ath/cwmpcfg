@@ -1,0 +1,271 @@
+
+###################################################################################
+##  cwmpcfg 
+## 
+##  Configuration file for CWMP.
+##  CWMP_GROUP_EMPTY is to avoid duplicate default setting overhead
+##  Put configuration file under /etc/ath/ with filename as *cfg (e.g. wificfg)
+###################################################################################
+
+CWMP_GROUP_EMPTY=`cfg -v CWMP_GROUP_EMPTY`
+
+if [ "$CWMP_GROUP_EMPTY" != "NO" ]; then
+
+	if [ "$CWMP_GROUP_EMPTY" = "PARTIAL" ]; then
+	
+	# Get the current settings from flash/cache area
+	cfg -e > /tmp/vars.$$
+	. /tmp/vars.$$
+	rm /tmp/vars.$$
+	
+	fi
+  
+cfg -a ACSSERVERURL=${ACSSERVERURL:="https://macs.oss.jio.com:8443/ftacs-digest/ACS"}
+cfg -a CWMPENABLE=${CWMPENABLE:=1}
+cfg -a CWMPPERIODICINFORMENABLE=${CWMPPERIODICINFORMENABLE:=1}
+cfg -a CWMPPERIODICINFORMINTERVAL=${CWMPPERIODICINFORMINTERVAL:=86400}
+cfg -a CWMPMANGSERVERREQUSERNAME=${CWMPMANGSERVERREQUSERNAME:="ftacs"}
+cfg -a CWMPMANGSERVERREQPASSWORD=${CWMPMANGSERVERREQPASSWORD:="ftacs"}
+cfg -a CWMPDEBUGENABLE=${CWMPDEBUGENABLE:=3}
+cfg -a CWMPMANGSERRETRYMININTERVALMUL=${CWMPMANGSERRETRYMININTERVALMUL:=2000}
+cfg -a CWMPMANGSERRETRYWAITMINWAITITV=${CWMPMANGSERRETRYWAITMINWAITITV:=5}
+
+# cwmpStatus.dat
+cfg -a TRSTATUS_event_0_type=${TRSTATUS_event_0_type:=1}
+cfg -a TRSTATUS_event_0_cmdkey=${TRSTATUS_event_0_cmdkey:=}
+cfg -a TRSTATUS_event_1_type=${TRSTATUS_event_1_type:=0}
+cfg -a TRSTATUS_event_1_cmdkey=${TRSTATUS_event_1_cmdkey:=}
+cfg -a TRSTATUS_event_2_type=${TRSTATUS_event_2_type:=0}
+cfg -a TRSTATUS_event_2_cmdkey=${TRSTATUS_event_2_cmdkey:=}
+cfg -a TRSTATUS_event_3_type=${TRSTATUS_event_3_type:=0}
+cfg -a TRSTATUS_event_3_cmdkey=${TRSTATUS_event_3_cmdkey:=}
+cfg -a TRSTATUS_event_4_type=${TRSTATUS_event_4_type:=0}
+cfg -a TRSTATUS_event_4_cmdkey=${TRSTATUS_event_4_cmdkey:=}
+cfg -a TRSTATUS_event_5_type=${TRSTATUS_event_5_type:=0}
+cfg -a TRSTATUS_event_5_cmdkey=${TRSTATUS_event_5_cmdkey:=}
+cfg -a TRSTATUS_event_6_type=${TRSTATUS_event_6_type:=0}
+cfg -a TRSTATUS_event_6_cmdkey=${TRSTATUS_event_6_cmdkey:=}
+cfg -a TRSTATUS_event_7_type=${TRSTATUS_event_7_type:=0}
+cfg -a TRSTATUS_event_7_cmdkey=${TRSTATUS_event_7_cmdkey:=}
+cfg -a TRSTATUS_event_8_type=${TRSTATUS_event_8_type:=0}
+cfg -a TRSTATUS_event_8_cmdkey=${TRSTATUS_event_8_cmdkey:=}
+cfg -a TRSTATUS_event_9_type=${TRSTATUS_event_9_type:=0}
+cfg -a TRSTATUS_event_9_cmdkey=${TRSTATUS_event_9_cmdkey:=}
+cfg -a TRSTATUS_event_10_type=${TRSTATUS_event_10_type:=0}
+cfg -a TRSTATUS_event_10_cmdkey=${TRSTATUS_event_10_cmdkey:=}
+cfg -a TRSTATUS_event_11_type=${TRSTATUS_event_11_type:=0}
+cfg -a TRSTATUS_event_11_cmdkey=${TRSTATUS_event_11_cmdkey:=}
+cfg -a TRSTATUS_event_12_type=${TRSTATUS_event_12_type:=0}
+cfg -a TRSTATUS_event_12_cmdkey=${TRSTATUS_event_12_cmdkey:=}
+cfg -a TRSTATUS_event_13_type=${TRSTATUS_event_13_type:=0}
+cfg -a TRSTATUS_event_13_cmdkey=${TRSTATUS_event_13_cmdkey:=}
+cfg -a TRSTATUS_event_14_type=${TRSTATUS_event_14_type:=0}
+cfg -a TRSTATUS_event_14_cmdkey=${TRSTATUS_event_14_cmdkey:=}
+cfg -a TRSTATUS_event_15_type=${TRSTATUS_event_15_type:=0}
+cfg -a TRSTATUS_event_15_cmdkey=${TRSTATUS_event_15_cmdkey:=}
+cfg -a TRSTATUS_event_16_type=${TRSTATUS_event_16_type:=0}
+cfg -a TRSTATUS_event_16_cmdkey=${TRSTATUS_event_16_cmdkey:=}
+cfg -a TRSTATUS_event_17_type=${TRSTATUS_event_17_type:=0}
+cfg -a TRSTATUS_event_17_cmdkey=${TRSTATUS_event_17_cmdkey:=}
+cfg -a TRSTATUS_event_18_type=${TRSTATUS_event_18_type:=0}
+cfg -a TRSTATUS_event_18_cmdkey=${TRSTATUS_event_18_cmdkey:=}
+cfg -a TRSTATUS_event_19_type=${TRSTATUS_event_19_type:=0}
+cfg -a TRSTATUS_event_19_cmdkey=${TRSTATUS_event_19_cmdkey:=}
+cfg -a TRSTATUS_event_20_type=${TRSTATUS_event_20_type:=0}
+cfg -a TRSTATUS_event_20_cmdkey=${TRSTATUS_event_20_cmdkey:=}
+cfg -a TRSTATUS_event_21_type=${TRSTATUS_event_21_type:=0}
+cfg -a TRSTATUS_event_21_cmdkey=${TRSTATUS_event_21_cmdkey:=}
+cfg -a TRSTATUS_event_22_type=${TRSTATUS_event_22_type:=0}
+cfg -a TRSTATUS_event_22_cmdkey=${TRSTATUS_event_22_cmdkey:=}
+cfg -a TRSTATUS_event_23_type=${TRSTATUS_event_23_type:=0}
+cfg -a TRSTATUS_event_23_cmdkey=${TRSTATUS_event_23_cmdkey:=}
+cfg -a TRSTATUS_event_24_type=${TRSTATUS_event_24_type:=0}
+cfg -a TRSTATUS_event_24_cmdkey=${TRSTATUS_event_24_cmdkey:=}
+cfg -a TRSTATUS_event_25_type=${TRSTATUS_event_25_type:=0}
+cfg -a TRSTATUS_event_25_cmdkey=${TRSTATUS_event_25_cmdkey:=}
+cfg -a TRSTATUS_event_26_type=${TRSTATUS_event_26_type:=0}
+cfg -a TRSTATUS_event_26_cmdkey=${TRSTATUS_event_26_cmdkey:=}
+cfg -a TRSTATUS_event_27_type=${TRSTATUS_event_27_type:=0}
+cfg -a TRSTATUS_event_27_cmdkey=${TRSTATUS_event_27_cmdkey:=}
+cfg -a TRSTATUS_event_28_type=${TRSTATUS_event_28_type:=0}
+cfg -a TRSTATUS_event_28_cmdkey=${TRSTATUS_event_28_cmdkey:=}
+cfg -a TRSTATUS_event_29_type=${TRSTATUS_event_29_type:=0}
+cfg -a TRSTATUS_event_29_cmdkey=${TRSTATUS_event_29_cmdkey:=}
+cfg -a TRSTATUS_event_30_type=${TRSTATUS_event_30_type:=0}
+cfg -a TRSTATUS_event_30_cmdkey=${TRSTATUS_event_30_cmdkey:=}
+cfg -a TRSTATUS_event_31_type=${TRSTATUS_event_31_type:=0}
+cfg -a TRSTATUS_event_31_cmdkey=${TRSTATUS_event_31_cmdkey:=}
+cfg -a TRSTATUS_DL_Q_0_id=${TRSTATUS_DL_Q_0_id:=0}
+cfg -a TRSTATUS_DL_Q_0_cmdkey=${TRSTATUS_DL_Q_0_cmdkey:=}
+cfg -a TRSTATUS_DL_Q_0_type=${TRSTATUS_DL_Q_0_type:=0}
+cfg -a TRSTATUS_DL_Q_0_URL=${TRSTATUS_DL_Q_0_URL:=}
+cfg -a TRSTATUS_DL_Q_0_username=${TRSTATUS_DL_Q_0_username:=}
+cfg -a TRSTATUS_DL_Q_0_password=${TRSTATUS_DL_Q_0_password:=}
+cfg -a TRSTATUS_DL_Q_0_file=${TRSTATUS_DL_Q_0_file:=}
+cfg -a TRSTATUS_DL_Q_0_delay=${TRSTATUS_DL_Q_0_delay:=0}
+cfg -a TRSTATUS_DL_Q_0_timerId=${TRSTATUS_DL_Q_0_timerId:=0}
+cfg -a TRSTATUS_DL_Q_0_expiredTime=${TRSTATUS_DL_Q_0_expiredTime:=0}
+cfg -a TRSTATUS_DL_Q_0_manualoperation=${TRSTATUS_DL_Q_0_manualoperation:=0}
+cfg -a TRSTATUS_DL_Q_1_id=${TRSTATUS_DL_Q_1_id:=0}
+cfg -a TRSTATUS_DL_Q_1_cmdkey=${TRSTATUS_DL_Q_1_cmdkey:=}
+cfg -a TRSTATUS_DL_Q_1_type=${TRSTATUS_DL_Q_1_type:=0}
+cfg -a TRSTATUS_DL_Q_1_URL=${TRSTATUS_DL_Q_1_URL:=}
+cfg -a TRSTATUS_DL_Q_1_username=${TRSTATUS_DL_Q_1_username:=}
+cfg -a TRSTATUS_DL_Q_1_password=${TRSTATUS_DL_Q_1_password:=}
+cfg -a TRSTATUS_DL_Q_1_file=${TRSTATUS_DL_Q_1_file:=}
+cfg -a TRSTATUS_DL_Q_1_delay=${TRSTATUS_DL_Q_1_delay:=0}
+cfg -a TRSTATUS_DL_Q_1_timerId=${TRSTATUS_DL_Q_1_timerId:=0}
+cfg -a TRSTATUS_DL_Q_1_expiredTime=${TRSTATUS_DL_Q_1_expiredTime:=0}
+cfg -a TRSTATUS_DL_Q_1_manualoperation=${TRSTATUS_DL_Q_1_manualoperation:=0}
+cfg -a TRSTATUS_DL_Q_2_id=${TRSTATUS_DL_Q_2_id:=0}
+cfg -a TRSTATUS_DL_Q_2_cmdkey=${TRSTATUS_DL_Q_2_cmdkey:=}
+cfg -a TRSTATUS_DL_Q_2_type=${TRSTATUS_DL_Q_2_type:=0}
+cfg -a TRSTATUS_DL_Q_2_URL=${TRSTATUS_DL_Q_2_URL:=}
+cfg -a TRSTATUS_DL_Q_2_username=${TRSTATUS_DL_Q_2_username:=}
+cfg -a TRSTATUS_DL_Q_2_password=${TRSTATUS_DL_Q_2_password:=}
+cfg -a TRSTATUS_DL_Q_2_file=${TRSTATUS_DL_Q_2_file:=}
+cfg -a TRSTATUS_DL_Q_2_delay=${TRSTATUS_DL_Q_2_delay:=0}
+cfg -a TRSTATUS_DL_Q_2_timerId=${TRSTATUS_DL_Q_2_timerId:=0}
+cfg -a TRSTATUS_DL_Q_2_expiredTime=${TRSTATUS_DL_Q_2_expiredTime:=0}
+cfg -a TRSTATUS_DL_Q_2_manualoperation=${TRSTATUS_DL_Q_2_manualoperation:=0}
+cfg -a TRSTATUS_DL_Q_3_id=${TRSTATUS_DL_Q_3_id:=0}
+cfg -a TRSTATUS_DL_Q_3_cmdkey=${TRSTATUS_DL_Q_3_cmdkey:=}
+cfg -a TRSTATUS_DL_Q_3_type=${TRSTATUS_DL_Q_3_type:=0}
+cfg -a TRSTATUS_DL_Q_3_URL=${TRSTATUS_DL_Q_3_URL:=}
+cfg -a TRSTATUS_DL_Q_3_username=${TRSTATUS_DL_Q_3_username:=}
+cfg -a TRSTATUS_DL_Q_3_password=${TRSTATUS_DL_Q_3_password:=}
+cfg -a TRSTATUS_DL_Q_3_file=${TRSTATUS_DL_Q_3_file:=}
+cfg -a TRSTATUS_DL_Q_3_delay=${TRSTATUS_DL_Q_3_delay:=0}
+cfg -a TRSTATUS_DL_Q_3_timerId=${TRSTATUS_DL_Q_3_timerId:=0}
+cfg -a TRSTATUS_DL_Q_3_expiredTime=${TRSTATUS_DL_Q_3_expiredTime:=0}
+cfg -a TRSTATUS_DL_Q_3_manualoperation=${TRSTATUS_DL_Q_3_manualoperation:=0}
+cfg -a TRSTATUS_DL_Q_4_id=${TRSTATUS_DL_Q_4_id:=0}
+cfg -a TRSTATUS_DL_Q_4_cmdkey=${TRSTATUS_DL_Q_4_cmdkey:=}
+cfg -a TRSTATUS_DL_Q_4_type=${TRSTATUS_DL_Q_4_type:=0}
+cfg -a TRSTATUS_DL_Q_4_URL=${TRSTATUS_DL_Q_4_URL:=}
+cfg -a TRSTATUS_DL_Q_4_username=${TRSTATUS_DL_Q_4_username:=}
+cfg -a TRSTATUS_DL_Q_4_password=${TRSTATUS_DL_Q_4_password:=}
+cfg -a TRSTATUS_DL_Q_4_file=${TRSTATUS_DL_Q_4_file:=}
+cfg -a TRSTATUS_DL_Q_4_delay=${TRSTATUS_DL_Q_4_delay:=0}
+cfg -a TRSTATUS_DL_Q_4_timerId=${TRSTATUS_DL_Q_4_timerId:=0}
+cfg -a TRSTATUS_DL_Q_4_expiredTime=${TRSTATUS_DL_Q_4_expiredTime:=0}
+cfg -a TRSTATUS_DL_Q_4_manualoperation=${TRSTATUS_DL_Q_4_manualoperation:=0}
+cfg -a TRSTATUS_UL_Q_0_id=${TRSTATUS_UL_Q_0_id:=0}
+cfg -a TRSTATUS_UL_Q_0_cmdkey=${TRSTATUS_UL_Q_0_cmdkey:=}
+cfg -a TRSTATUS_UL_Q_0_type=${TRSTATUS_UL_Q_0_type:=0}
+cfg -a TRSTATUS_UL_Q_0_URL=${TRSTATUS_UL_Q_0_URL:=}
+cfg -a TRSTATUS_UL_Q_0_username=${TRSTATUS_UL_Q_0_username:=}
+cfg -a TRSTATUS_UL_Q_0_password=${TRSTATUS_UL_Q_0_password:=}
+cfg -a TRSTATUS_UL_Q_0_delay=${TRSTATUS_UL_Q_0_delay:=0}
+cfg -a TRSTATUS_UL_Q_0_timerId=${TRSTATUS_UL_Q_0_timerId:=0}
+cfg -a TRSTATUS_UL_Q_0_expiredTime=${TRSTATUS_UL_Q_0_expiredTime:=0}
+cfg -a TRSTATUS_UL_Q_0_manualoperation=${TRSTATUS_UL_Q_0_manualoperation:=0}
+cfg -a TRSTATUS_UL_Q_0_delSourceFile=${TRSTATUS_UL_Q_0_delSourceFile:=0}
+cfg -a TRSTATUS_UL_Q_1_id=${TRSTATUS_UL_Q_1_id:=0}
+cfg -a TRSTATUS_UL_Q_1_cmdkey=${TRSTATUS_UL_Q_1_cmdkey:=}
+cfg -a TRSTATUS_UL_Q_1_type=${TRSTATUS_UL_Q_1_type:=0}
+cfg -a TRSTATUS_UL_Q_1_URL=${TRSTATUS_UL_Q_1_URL:=}
+cfg -a TRSTATUS_UL_Q_1_username=${TRSTATUS_UL_Q_1_username:=}
+cfg -a TRSTATUS_UL_Q_1_password=${TRSTATUS_UL_Q_1_password:=}
+cfg -a TRSTATUS_UL_Q_1_delay=${TRSTATUS_UL_Q_1_delay:=0}
+cfg -a TRSTATUS_UL_Q_1_timerId=${TRSTATUS_UL_Q_1_timerId:=0}
+cfg -a TRSTATUS_UL_Q_1_expiredTime=${TRSTATUS_UL_Q_1_expiredTime:=0}
+cfg -a TRSTATUS_UL_Q_1_manualoperation=${TRSTATUS_UL_Q_1_manualoperation:=0}
+cfg -a TRSTATUS_UL_Q_1_delSourceFile=${TRSTATUS_UL_Q_1_delSourceFile:=0}
+cfg -a TRSTATUS_UL_Q_2_id=${TRSTATUS_UL_Q_2_id:=0}
+cfg -a TRSTATUS_UL_Q_2_cmdkey=${TRSTATUS_UL_Q_2_cmdkey:=}
+cfg -a TRSTATUS_UL_Q_2_type=${TRSTATUS_UL_Q_2_type:=0}
+cfg -a TRSTATUS_UL_Q_2_URL=${TRSTATUS_UL_Q_2_URL:=}
+cfg -a TRSTATUS_UL_Q_2_username=${TRSTATUS_UL_Q_2_username:=}
+cfg -a TRSTATUS_UL_Q_2_password=${TRSTATUS_UL_Q_2_password:=}
+cfg -a TRSTATUS_UL_Q_2_delay=${TRSTATUS_UL_Q_2_delay:=0}
+cfg -a TRSTATUS_UL_Q_2_timerId=${TRSTATUS_UL_Q_2_timerId:=0}
+cfg -a TRSTATUS_UL_Q_2_expiredTime=${TRSTATUS_UL_Q_2_expiredTime:=0}
+cfg -a TRSTATUS_UL_Q_2_manualoperation=${TRSTATUS_UL_Q_2_manualoperation:=0}
+cfg -a TRSTATUS_UL_Q_2_delSourceFile=${TRSTATUS_UL_Q_2_delSourceFile:=0}
+cfg -a TRSTATUS_UL_Q_3_id=${TRSTATUS_UL_Q_3_id:=0}
+cfg -a TRSTATUS_UL_Q_3_cmdkey=${TRSTATUS_UL_Q_3_cmdkey:=}
+cfg -a TRSTATUS_UL_Q_3_type=${TRSTATUS_UL_Q_3_type:=0}
+cfg -a TRSTATUS_UL_Q_3_URL=${TRSTATUS_UL_Q_3_URL:=}
+cfg -a TRSTATUS_UL_Q_3_username=${TRSTATUS_UL_Q_3_username:=}
+cfg -a TRSTATUS_UL_Q_3_password=${TRSTATUS_UL_Q_3_password:=}
+cfg -a TRSTATUS_UL_Q_3_delay=${TRSTATUS_UL_Q_3_delay:=0}
+cfg -a TRSTATUS_UL_Q_3_timerId=${TRSTATUS_UL_Q_3_timerId:=0}
+cfg -a TRSTATUS_UL_Q_3_expiredTime=${TRSTATUS_UL_Q_3_expiredTime:=0}
+cfg -a TRSTATUS_UL_Q_3_manualoperation=${TRSTATUS_UL_Q_3_manualoperation:=0}
+cfg -a TRSTATUS_UL_Q_3_delSourceFile=${TRSTATUS_UL_Q_3_delSourceFile:=0}
+cfg -a TRSTATUS_UL_Q_4_id=${TRSTATUS_UL_Q_4_id:=0}
+cfg -a TRSTATUS_UL_Q_4_cmdkey=${TRSTATUS_UL_Q_4_cmdkey:=}
+cfg -a TRSTATUS_UL_Q_4_type=${TRSTATUS_UL_Q_4_type:=0}
+cfg -a TRSTATUS_UL_Q_4_URL=${TRSTATUS_UL_Q_4_URL:=}
+cfg -a TRSTATUS_UL_Q_4_username=${TRSTATUS_UL_Q_4_username:=}
+cfg -a TRSTATUS_UL_Q_4_password=${TRSTATUS_UL_Q_4_password:=}
+cfg -a TRSTATUS_UL_Q_4_delay=${TRSTATUS_UL_Q_4_delay:=0}
+cfg -a TRSTATUS_UL_Q_4_timerId=${TRSTATUS_UL_Q_4_timerId:=0}
+cfg -a TRSTATUS_UL_Q_4_expiredTime=${TRSTATUS_UL_Q_4_expiredTime:=0}
+cfg -a TRSTATUS_UL_Q_4_manualoperation=${TRSTATUS_UL_Q_4_manualoperation:=0}
+cfg -a TRSTATUS_UL_Q_4_delSourceFile=${TRSTATUS_UL_Q_4_delSourceFile:=0}
+cfg -a TRSTATUS_dlStartTime=${TRSTATUS_dlStartTime:=0}
+cfg -a TRSTATUS_dlEndTime=${TRSTATUS_dlEndTime:=0}
+cfg -a TRSTATUS_dlFaultCode=${TRSTATUS_dlFaultCode:=0}
+cfg -a TRSTATUS_dlFileType=${TRSTATUS_dlFileType:=0}
+cfg -a TRSTATUS_dlURL=${TRSTATUS_dlURL:=}
+cfg -a TRSTATUS_ulStartTime=${TRSTATUS_ulStartTime:=0}
+cfg -a TRSTATUS_ulEndTime=${TRSTATUS_ulEndTime:=0}
+cfg -a TRSTATUS_ulFaultCode=${TRSTATUS_ulFaultCode:=0}
+cfg -a TRSTATUS_ulURL=${TRSTATUS_ulURL:=}
+cfg -a TRSTATUS_AutonomousTransCompIsDownload=${TRSTATUS_AutonomousTransCompIsDownload:=0}
+cfg -a TRSTATUS_TransCompFail=${TRSTATUS_TransCompFail:=0}
+cfg -a TRSTATUS_UploadHttpMethod=${TRSTATUS_UploadHttpMethod:=0}
+	
+	# wifi 
+	cfg -a CWMPWIFISSID1EN=${CWMPWIFISSID1EN:=1}
+	cfg -a CWMPAP1SECREKEYINGINTERVAL=${CWMPAP1SECREKEYINGINTERVAL:=3600}
+	cfg -a CWMPAP1SECREKEYINGINTERVAL=${CWMPAP1SECREKEYINGINTERVAL:=3600}
+
+
+	# Add defualt SSID  
+	# // Foxconn add start, Ignacs Wu, 2016/04/29 
+	if [ "${AP_SSID}" == "" ]; then
+		# Use wifi_nv_mac command
+		#MAC_STR=`ifconfig ${ACCESS_AP_IFACE} | grep ${ACCESS_AP_IFACE} | cut -c 39-56`
+		MAC_STR=`wifi_nv_mac 2>/dev/null`
+		B1=`echo $MAC_STR | cut -f 1 -d ':'`
+		B2=`echo $MAC_STR | cut -f 2 -d ':'`
+		B3=`echo $MAC_STR | cut -f 3 -d ':'`
+		B4=`echo $MAC_STR | cut -f 4 -d ':'`
+		B5=`echo $MAC_STR | cut -f 5 -d ':'`
+		B6=`echo $MAC_STR | cut -f 6 -d ':'`
+		SSID_TAIL_STR=$B4$B5$B6
+		# foxconn jay sync the defualt for mifi4
+		ASSIGN_SSID="JioFi3_$SSID_TAIL_STR"
+		cfg -a AP_SSIDREF=${ASSIGN_SSID:=}
+
+		# SSID-2
+		ASSIGN_SSID="MHS-Generic-2_$SSID_TAIL_STR"
+		cfg -a AP_SSIDREF_2=$ASSIGN_SSID
+	fi # // Foxconn add end, Ignacs Wu, 2016/04/29 
+
+# remove // Foxconn add, Ignacs Wu, 2016/04/19 
+# wifi default password // Foxconn add start, Ignacs Wu, 2016/04/01 
+#	CWMPAP1SECKEYPASSPHRASE=`cfg -v CWMPAP1SECKEYPASSPHRASE`
+#	if [ "$CWMPAP1SECKEYPASSPHRASE" = "" ]; then
+#	  cfg -a CWMPAP1SECKEYPASSPHRASE="1234567a"
+#	fi
+#
+#	CWMP_PSK_KEY=`cfg -v CWMP_PSK_KEY`
+#	if [ "$CWMP_PSK_KEY" = "" ]; then
+#	  cfg -a CWMPAP1SECKEYPASSPHRASE="1234567a"
+#	fi
+# wifi default password // Foxconn add end, Ignacs Wu, 2016/04/01 
+
+rm -f "/foxusr/cwmp/attribute.pri"
+
+        # 20170902 - Wilson add to tweak IMSI notification
+        cfg -a IMSI_NOTIFY=1
+
+	# Now it's non-empty
+	cfg -a CWMP_GROUP_EMPTY=NO
+
+fi
+

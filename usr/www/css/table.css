@@ -1,0 +1,98 @@
+a img {	border:0	}	
+
+table.example {
+	border:1px solid #e1e1d0; 
+	border-collapse:collapse;
+	margin:10px 0px 0 0;
+}
+.accLogTbl {	 max-height: 305px; overflow: auto; border:1px solid #e1e1d0; background:#fff;   	}
+.accLogTbl table.example {	border:0;  border-bottom:1px solid #e1e1d0; 	}
+ 
+table.example th, table.example td {
+	border-left:1px solid #e1e1d0;
+	border-top:1px solid #e1e1d0;
+	border-right:1px solid #e1e1d0;
+	border-bottom:1px solid #e1e1d0;
+	padding:6px 3px 6px 9px; text-align:left
+}
+
+.cell { padding-left:15px;padding-top:5px}
+
+.accLogTbl table.example th:first-child, .accLogTbl table.example td:first-child {	border-left:0;	}
+
+table.example thead th {
+	background-color:#ebebe0;
+	 text-align: center;
+}
+table.example tfoot td {
+	background-color:#ffccff;
+}
+table.example th.status, table.example td.status{	border-left:0;	}
+table.example td.status img {	float:left; margin:3px 0 -3px 0	}	
+table.example tr.tbody_header {
+	font-weight:bold;
+	text-align:center;
+	background-color:#dddddd;
+}
+
+table.example a.pagelink {
+	padding-left:5px;
+	padding-right:5px;
+	border:1px solid #666666;
+	margin:0px 5px 0px 5px;
+}
+table.example a.currentpage {
+	background-color:yellow;
+}
+/* Striping */
+tr.alternate {
+	background-color:#f1f1f1;
+}
+
+/* Sorting */
+th.table-sortable {
+	cursor:pointer;
+	background-image:url("/images/sortable.png");
+	background-position:center 50%;
+	background-repeat:no-repeat;
+	padding-left:12px;
+}
+th.table-sorted-asc {
+	background-image:url("/images/sorted_up.png");
+	background-position:center 50%;
+	background-repeat:no-repeat;
+}
+th.table-sorted-desc {
+	background-image:url("/images/sorted_down.png");
+	background-position:center 50%;
+	background-repeat:no-repeat;
+}
+ 
+select.table-autofilter {
+	font-size:smaller;
+}
+
+/* Examples which stray from the default */
+table.altstripe tr.alternate2 {
+	background-color:#ccffff;
+}
+/* Icons box */
+.iconset {
+	margin:5px;
+	border:1px solid #cccccc;
+	border-color:#cccccc #666666 #666666 #cccccc;
+	text-align:center;
+	cursor:pointer;
+	width:100px;
+}
+.iconset img {
+	margin:3px;
+}
+
+/* Documentation */
+tr.doc_section {
+	font-weight:bold;
+	text-align:center;
+	background-color:#dddddd;
+}
+

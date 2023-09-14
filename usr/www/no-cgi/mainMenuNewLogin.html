@@ -1,0 +1,69 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link href="/css/stylesheet.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="/js/common.js" language="javascript"></script>
+<title>Reliance Wireless Router</title>
+</head>
+<script language="JavaScript">
+
+function updatecontent()
+{
+	if(isMobileWeb() == 0)
+	{
+		//width: 24.94%;
+		document.getElementById("text4").innerHTML = "User Management";
+	}
+	else
+	{
+		//document.getElementById("last").className = "last";	 
+		document.getElementById("1").style.width = "20%";
+		document.getElementById("2").style.width = "22%"; 
+		document.getElementById("3").style.width = "28%";
+		document.getElementById("4").style.width = "29.76%";	
+		document.getElementById("nwMenuTag").href = "/no-cgi/networkMobileMenu.html";
+		document.getElementById("wifiDiskMenuTag").href = "/cgi-bin/en-jio/mSDCard.html";
+		document.getElementById("usrMangtTag").href = "/no-cgi/userMgtMobileMenu.html";
+	}
+	
+	var content_string = window.top.frames['content'].location.href;
+	if(content_string.indexOf('networkMobileMenu.html') != -1)//
+	{
+		document.getElementById("1").className='';		
+		document.getElementById("2").className='on';
+		document.getElementById("3").className='';	
+		document.getElementById("4").className='';	
+	}
+	else if(content_string.indexOf('userMgtMobileMenu.html') != -1)
+	{
+		document.getElementById("1").className='';		
+		document.getElementById("2").className='';
+		document.getElementById("3").className='';	
+		document.getElementById("4").className='on';	
+	}	
+}
+ 
+</script>
+<body onload="updatecontent()">
+<div class="mainMenu">
+	<ul>
+	<li id="1" class="on" onclick="createMenu(1,4)">
+		<a href="/cgi-bin/en-jio/mStatus.html" id="statusMenuTag" target="content">Status</a>
+	</li>
+	<li style="width: 0.08%;"><img src="/images/gray_line.png"></li>
+	<li id="2" onclick="createMenu(2,4)">
+		<a href="/no-cgi/networkNewMenu.html" id="nwMenuTag" target="content">Network</a>
+	</li>
+	<li style="width: 0.08%;"><img src="/images/gray_line.png"></li>
+	<li id="3" onclick="createMenu(3,4)">
+		<a href="/no-cgi/wifiDiskMenu.html" id="wifiDiskMenuTag" target="content">Wi-Fi Disk</a>
+	</li>	
+	<li style="width: 0.08%;"><img src="/images/gray_line.png"></li>
+	<li id="4" onclick="createMenu(4,4)">
+		<a href="/no-cgi/userMgtNewMenu.html" id="usrMangtTag" target="content"><div id="text4">Management</div></a>
+	</li>	
+	</ul>
+</div>
+</body>
+</html>

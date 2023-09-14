@@ -1,0 +1,26 @@
+
+DUMP_TO_KMSG=/dev/kmsg
+
+## ------------------------------------------------------------
+## Read the configuration
+## ------------------------------------------------------------
+FX_DOWNLOAD_MODE=`cfg -v FX_DOWNLOAD_MODE`
+echo "fx_download_mode:: FX_DOWNLOAD_MODE=${FX_DOWNLOAD_MODE}"					> $DUMP_TO_KMSG
+
+
+## ------------------------------------------------------------
+## Set the parameter
+## ------------------------------------------------------------
+if [ "${FX_DOWNLOAD_MODE}" == "1" ]; then
+	echo 1 > /sys/module/msm_poweroff/parameters/download_mode
+	echo "fx_download_mode:: enter download mode"								> $DUMP_TO_KMSG
+elif [ "${FX_DOWNLOAD_MODE}" == "0" ]; then
+	echo 0 > /sys/module/msm_poweroff/parameters/download_mode
+	echo "fx_download_mode:: leave download mode"								> $DUMP_TO_KMSG
+else
+	echo "fx_download_mode:: do nothing"										> $DUMP_TO_KMSG
+fi
+
+
+
+

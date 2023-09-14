@@ -1,0 +1,100 @@
+
+DUMP_TO_KMSG=/dev/kmsg
+
+## ------------------------------------------------------------
+## Read the input parameter
+## ------------------------------------------------------------
+action=$1
+devmode=$2
+model=$3
+
+
+## ------------------------------------------------------------
+## Check project type
+## ------------------------------------------------------------
+isMIFI4=0
+if [ "${model}" = "mifi4" ]; then	
+	isMIFI4=1	
+fi
+echo "fx_ar6k:: isMIFI4 = ${isMIFI4}"												> $DUMP_TO_KMSG
+
+
+## ------------------------------------------------------------
+## Insert Wi-Fi module on SDIO
+## ------------------------------------------------------------
+if [ "${action}" = "start" ]; then
+
+	### Set maximum client number , start...
+
+	mkdir /tmp/wlan
+	mkdir /tmp/wlan/qca_cld
+	WLAN_INI_FILE=/tmp/wlan/qca_cld/WCNSS_qcom_cfg.ini
+
+	fw_path_para="`cat /sys/module/firmware_class/parameters/path`"
+	echo "fx_ar6k:: fw_path_para=\"${fw_path_para}\"" > $DUMP_TO_KMSG
+	if [ "${fw_path_para}" != "/tmp" ] ; then
+		echo -n /tmp > /sys/module/firmware_class/parameters/path
+		fw_path_para="`cat /sys/module/firmware_class/parameters/path`"
+		echo "fx_ar6k:: fw_path_para=\"${fw_path_para}\" after set" > $DUMP_TO_KMSG
+	fi
+
+	if [ ! -f ${WLAN_INI_FILE} ]; then
+		cp /lib/firmware/wlan/qca_cld/WCNSS_qcom_cfg.ini ${WLAN_INI_FILE}
+	fi
+
+	# Add ap max client  // Foxconn add, Ignacs Wu, 2016/04/18 
+	OLD_STA_NUM="`cat ${WLAN_INI_FILE} | grep gSoftApMaxPeers`"
+	echo "fx_ar6k:: OLD_STA_NUM=${OLD_STA_NUM}" > $DUMP_TO_KMSG
+	NEW_STA_NUM=`cfg -v AP_MAX_NUM_CLIENT`
+	echo "fx_ar6k:: NEW_STA_NUM=${NEW_STA_NUM}" > $DUMP_TO_KMSG
+	if [ -z "${NEW_STA_NUM}" ] ; then
+		sed -i 's/gSoftApMaxPeers=16/gSoftApMaxPeers=31/g' ${WLAN_INI_FILE}
+	else
+        if [ ${NEW_STA_NUM} -gt 31 ]; then
+            sed -i 's/gSoftApMaxPeers=16/gSoftApMaxPeers=31/g' ${WLAN_INI_FILE}
+        else
+		    sed -i "s/$OLD_STA_NUM/gSoftApMaxPeers=$NEW_STA_NUM/g" ${WLAN_INI_FILE}
+        fi
+	fi 
+
+	### Set maximum client number , end!
+
+	### Insert driver
+	WLAN_INIT_FILE=/tmp/wlan_init
+
+	for idx in $(seq 1 3)
+	do
+		if [ -f ${WLAN_INIT_FILE} ]; then
+			rm ${WLAN_INIT_FILE}
+		fi
+
+		echo "fx_ar6k:: [${idx}]${action} Wi-Fi module for ${devmode}"				> $DUMP_TO_KMSG
+		/etc/init.d/wlan ${action} ${devmode}
+
+		CHECK_WLAN_INIT=`cat ${WLAN_INIT_FILE}`
+		echo "fx_ar6k:: CHECK_WLAN_INIT=${CHECK_WLAN_INIT}"							> $DUMP_TO_KMSG
+		if [ "${CHECK_WLAN_INIT}" == "WLAN bring-up successfully!" ]; then
+			echo "fx_ar6k:: WLAN bring-up successfully!"							> $DUMP_TO_KMSG
+			break
+		else
+			echo "fx_ar6k:: WLAN bring-up failed!"									> $DUMP_TO_KMSG
+			sleep 3
+		fi
+	done
+
+else if [ "${action}" = "start_ftm" ]; then
+		echo "fx_ar6k:: ${action} Wi-Fi module"											> $DUMP_TO_KMSG
+		/etc/init.d/wlan stop
+		insmod /usr/lib/modules/3.18.20/extra/wlan.ko con_mode=5
+		ftmdaemon -n
+else
+
+	echo "fx_ar6k:: ${action} Wi-Fi module"											> $DUMP_TO_KMSG
+	/etc/init.d/wlan ${action}
+
+fi
+fi
+
+exit 0
+
+

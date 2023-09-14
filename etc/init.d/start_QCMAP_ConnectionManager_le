@@ -1,0 +1,50 @@
+#! /bin/sh
+#
+#Copyright (c) 2011-2013 Qualcomm Technologies, Inc.  All Rights Reserved.
+#Qualcomm Technologies Proprietary and Confidential.
+
+# QCMAP_ConnectionManager   init.d script to start the Data Software's QCMAP_ConnectionManager daemon
+
+set -e
+
+case "$1" in
+  start)
+        echo -n "Starting QCMAP_ConnectionManager: "
+        echo "QCMAP:start" > /dev/kmsg
+        # Foxconn modify start, eric hsieh, 2016/04/22
+        #start-stop-daemon -S -b -a QCMAP_ConnectionManager /etc/mobileap_cfg.xml d
+        if [ ! -f "/foxusr/mobileap_cfg.xml" ]; then 
+            cp /etc/mobileap_cfg.xml /foxusr/mobileap_cfg.xml
+        fi
+        isMFT=`/usr/sbin/upgrade -g mft&`
+        if [ $isMFT == "1" ]; then
+            echo "QCMAP:start with fmt config" > /dev/kmsg
+            start-stop-daemon -S -b -a QCMAP_ConnectionManager /etc/mobileap_cfg_mft.xml d
+        else
+            echo "QCMAP:start with normal config" > /dev/kmsg
+            if [ -f "/foxusr/mobileap_cfg.xml" ]; then
+                start-stop-daemon -S -b -a QCMAP_ConnectionManager /foxusr/mobileap_cfg.xml d
+            else
+                start-stop-daemon -S -b -a QCMAP_ConnectionManager /etc/mobileap_cfg.xml d
+            fi
+        fi
+        # Foxconn modify end, eric hsieh, 2016/04/22
+        # echo "/tmp/qcmap_core.%p" > /proc/sys/kernel/core_pattern
+        echo "done"
+        ;;
+  stop)
+        echo -n "Stopping QCMAP_ConnectionManager: "
+        start-stop-daemon -K -x QCMAP_ConnectionManager
+        echo "done"
+        ;;
+  restart)
+        $0 stop
+        $0 start
+        ;;
+  *)
+        echo "Usage QCMAP_ConnectionManager { start | stop | restart}" >&2
+        exit 1
+        ;;
+esac
+
+exit 0

@@ -1,0 +1,39 @@
+
+DUMP_TO_KMSG=/dev/kmsg
+
+## ------------------------------------------------------------
+## Read the module parameter
+## ------------------------------------------------------------
+action=$1
+sta_interface=$2
+
+if [ "${action}" == "start" ]; then
+
+	echo "------------------------------------------------------"	> $DUMP_TO_KMSG
+	echo "fx_sta:: start STA application"							> $DUMP_TO_KMSG
+	echo "fx_sta:: sta_interface=${sta_interface}"					> $DUMP_TO_KMSG
+	echo "------------------------------------------------------"	> $DUMP_TO_KMSG
+
+	fx_wpa_app -i ${sta_interface} &
+	wpa_supplicant -i ${sta_interface} -Dnl80211 -B -c /tmp/wpa_supplicant.conf -x
+
+else if [ "${action}" == "stop" ]; then
+
+	echo "------------------------------------------------------"	> $DUMP_TO_KMSG
+	echo "fx_sta:: stop STA application"							> $DUMP_TO_KMSG
+	echo "------------------------------------------------------"	> $DUMP_TO_KMSG
+
+	killall -15 wpa_supplicant
+	pidlist=`ps | grep 'fx_wpa_app -i wlan0' | cut -b1-5`
+	for j in $pidlist
+	do
+		kill -s SIGTERM $j
+		break
+	done
+
+else
+	echo "fx_sta:: action is unknown"
+fi
+fi
+
+

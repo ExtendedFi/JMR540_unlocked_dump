@@ -1,0 +1,9 @@
+#! /bin/sh
+# Make /var/log/wtmp point to NULL so logs written to wtmp are not saved
+rm /var/log/wtmp
+ln -s /dev/null /var/log/wtmp
+if [ ! -d "/foxtmp/etc" ]
+then
+    mkdir -p /foxtmp/etc
+fi
+echo 0 > /foxtmp/etc/reboot-cookie

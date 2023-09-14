@@ -1,0 +1,20 @@
+#! /bin/sh
+# Foxconn wilson add for updating lease information
+# Log=/tmp/dnsmasqscript.log
+# date >> $Log
+# echo "Param1 = $1" >> $Log
+# echo "Param2 = $2" >> $Log
+# echo "Param3 = $3" >> $Log
+# echo "Param4 = $4" >> $Log
+# echo "DNSMASQ_LEASE_EXPIRES = $DNSMASQ_LEASE_EXPIRES" >> $Log
+# echo "DNSMASQ_OLD_HOSTNAME = $DNSMASQ_OLD_HOSTNAME" >> $Log
+# echo "DNSMASQ_FX_HOSTNAME = $DNSMASQ_FX_HOSTNAME" >> $Log
+if [ "$4" != "" ] && [ "$4" != "*" ]; then
+    3gcmif host $1 $2 $3 $4 $DNSMASQ_LEASE_EXPIRES
+elif [ "$DNSMASQ_OLD_HOSTNAME" != "" ] && [ "$DNSMASQ_OLD_HOSTNAME" != "*" ]; then
+    3gcmif host $1 $2 $3 $DNSMASQ_OLD_HOSTNAME $DNSMASQ_LEASE_EXPIRES
+elif [ "$DNSMASQ_FX_HOSTNAME" != "" ] && [ "$DNSMASQ_FX_HOSTNAME" != "*" ]; then
+    3gcmif host $1 $2 $3 $DNSMASQ_FX_HOSTNAME $DNSMASQ_LEASE_EXPIRES
+else
+    3gcmif host $1 $2 $3 \* $DNSMASQ_LEASE_EXPIRES
+fi

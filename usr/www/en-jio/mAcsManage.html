@@ -1,0 +1,192 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Engineering Settings</title>
+<meta http-equiv="Content-Type" content="text/html; charset=big5">
+<link href="/css/stylesheet.css" rel="stylesheet" type="text/css" />
+<script language="JavaScript" src="/js/validate.js"></script>
+<script language="JavaScript" src="/js/message.js"></script>
+<script language="JavaScript" src="/js/common.js"></script>
+
+<script language="JavaScript">
+var mtu_size_orign=0;
+
+function valiateMtu()
+{
+	var mtu_size = document.getElementById("MTU_SIZE");	
+	if(checkEmpty(mtu_size))
+	{
+		alert("MTU value can not be empty.");
+		return;
+	}
+	else if(isInteger(mtu_size.value) == false)
+	{
+		alert("Invalid MTU value.");
+		return;
+	}
+	else if(parseInt(mtu_size.value) < 1280 || parseInt(mtu_size.value) > 1500)
+	{
+		alert("MTU value must be between 1280 and 1500");
+		return;
+	}
+	
+	if(mtu_size_orign != mtu_size.value)
+	{
+		document.forms["myMtuForm"].submit();
+	}
+}
+	
+function InformStatusChanged(InformEnabled)
+{
+	if(InformEnabled.value == 1)
+	{
+		document.getElementById("CWMPPERIODICINFORMINTERVAL").style.display = "block";	
+		document.getElementById("lTr069InformInterval").style.display = "block";		
+	}else
+	{
+		document.getElementById("CWMPPERIODICINFORMINTERVAL").style.display = "none";
+		document.getElementById("lTr069InformInterval").style.display = "none";
+	}
+}
+
+function startACSConnect()
+{
+	var acsUrl = document.myForm.ACSSERVERURL;
+	if (checkEmpty(acsUrl)) 
+	{
+		alert("ACS URL can not be empty.");
+		acsUrl.focus();
+		return false;
+	}
+
+	if (acsUrl.value.length > 255) 
+	{
+		alert("The maximan length of ACS URL is 255.");
+		acsUrl.focus();
+		return false;
+	}
+	
+	var acsUsrname = document.myForm.ACSUSERNAME;
+	if (checkEmpty(acsUsrname)) 
+	{
+		alert("Username can not be empty.");
+		acsUsrname.focus();
+		return false;
+	}
+	
+	if (acsUsrname.value.length > 255) 
+	{
+		alert("The maximan length of Username is 255.");
+		acsUsrname.focus();
+		return false;
+	}	
+	
+	var acsPwd = document.myForm.ACSPASSWORD;
+	if (!checkEmpty(acsPwd)) 
+	{
+		if (acsPwd.value.length > 255) 
+		{
+			alert("The maximan length of Password is 255.");
+			acsPwd.focus();
+			return false;
+		}
+	}		
+	
+	document.forms["myForm"].submit();
+	return true;
+}
+
+function update_content()
+{
+	var MTU_SIZE = document.getElementById("MTU_SIZE");	
+	
+	mtu_size_orign = '~*wan_mtu_size~';
+	MTU_SIZE.value = mtu_size_orign;
+	
+	var CWMPPERIODICINFORMENABLE = "~~CWMPPERIODICINFORMENABLE~";
+	if(CWMPPERIODICINFORMENABLE == "0")
+	{
+		document.getElementById("CWMPPERIODICINFORMINTERVAL").style.display = "none";
+		document.getElementById("lTr069InformInterval").style.display = "none";
+	}	
+}
+</script>
+</head>
+
+<body onLoad="update_content();" > 
+<div class="mainContent" id="mainContent">
+<form name="myForm" method="post" action="/cgi-bin/en-jio/mAcsManage_Start.html">
+<input type="hidden" name="RequestVerifyToken" value="~*token~">
+<div class="maintitle">
+<label id="title" class="title">ACS Settings</label>
+</div>
+<hr color="#D8D8D8" size="1px" width="100%"> </hr>
+<div id="Content" class="content">  
+	<div style="display: block;" id="Acs_Management_div">
+	<table width="650px">
+	<tr height="70px">
+	<td colspan="2"><label id="lTr069AcsUrl">ACS URL:</label></td>
+	</tr>
+	<tr>
+	<td colspan="2"><input name="ACSSERVERURL" value="~~ACSSERVERURL~" id="ACSSERVERURL" class="acsurltest" type="text" maxLength="256"></td>
+	</tr>
+	<tr height="70px">
+	<td><label id="lTr069AcsUsername">Username:</label></td>
+	<td><label id="lTr069AcsPassword">Password:</label></td>
+	</tr>
+	<tr>
+	<td><input name="ACSUSERNAME" value="~*acsusername~" id="ACSUSERNAME" class="textfield" type="text"></td>
+	<td><input name="ACSPASSWORD" value="" id="ACSPASSWORD" class="textfield" type="password" placeholder="ACS Password"></td>
+	</tr>
+	<tr height="70px">
+	<td><label id="lTr069Inform">Periodic Inform:</label></td>
+	<td><label id="lTr069InformInterval">Periodic Inform Interval:</label></td>
+	</tr>
+	<tr>	
+	<td>
+	<select id="lInform" name="CWMPPERIODICINFORMENABLE" onchange="InformStatusChanged(this)">
+	<option value="1" ~sCWMPPERIODICINFORMENABLE:1:0~ >Enabled</option>
+	<option value="0" ~sCWMPPERIODICINFORMENABLE:0:0~ >Disabled</option>
+	</select>	
+	</td>	
+	<td><input name="CWMPPERIODICINFORMINTERVAL" value="~~CWMPPERIODICINFORMINTERVAL~" id="CWMPPERIODICINFORMINTERVAL" class="textfield" type="text"></td>
+	</tr>
+	
+	<tr height="70px">
+	<td><label id="lTr069ConnName">Connection Request UserName:</label></td>
+	<td><label id="lTr069ConnPassword">Connection Request Password:</label></td>
+	</tr>
+	<tr>
+	<td><input name="CWMPMANGSERVERREQUSERNAME" value="~~CWMPMANGSERVERREQUSERNAME~" id="CWMPMANGSERVERREQUSERNAME" class="textfield" type="text"></td>
+	<td><input name="CWMPMANGSERVERREQPASSWORD" value="~~CWMPMANGSERVERREQPASSWORD~" id="CWMPMANGSERVERREQPASSWORD" class="textfield" type="text"></td>
+	</tr>	
+	</table>
+	<div class="buttonStyle" align="left">			
+	<input id="btUpdate" value="Save" onclick="startACSConnect()" type="button">			
+	</div>
+	</div>	
+</div>	
+</form>
+<br>
+<form name="myMtuForm" method="post" action="/cgi-bin/en-jio/mMtuSetting_Apply.html">
+	<input type="hidden" name="RequestVerifyToken" value="~*token~">
+<div class="maintitle">
+	<label id="title" class="title">MTU Setting</label>
+</div>
+	<hr color="#D8D8D8" size="1px" width="100%"> </hr>
+	<div id="Content" class="content" style="min-height:80px">  
+	<div class="inlineDiv">
+	    <br>
+        <label id="lMTULabel" class="subttl">WAN MTU:</label>        
+        <input id="MTU_SIZE" name="MTU_SIZE" maxlength="4" class="text2" type="text"><em style="margin-left:10px;color:red;">(1280-1500)</em>
+        <label id="lMtuInvalidTip" style="display: none;color:red;">Invalid MTU value.The value range is from 1280 to 1500 and must be an integer.</label> 
+        <br>
+		<div class="buttonStyle" align="left">			
+		<input id="btMtuUpdate" value="Save" onclick="valiateMtu()" type="button">			
+		</div>		
+    </div>
+</div>
+</form>
+</div>
+</body>
+</html>

@@ -1,0 +1,688 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Port Forwarding</title>
+<meta http-equiv="Content-Type" content="text/html; charset=big5">
+<link href="/css/stylesheet.css" rel="stylesheet" type="text/css" />
+<link href="/css/elements.css" rel="stylesheet" type="text/css" />
+<link href="/css/table.css" rel="stylesheet" type="text/css" />
+<script language="JavaScript" src="/js/validate.js"></script>
+<script language="JavaScript" src="/js/message.js"></script>
+<script language="JavaScript" src="/js/common.js"></script>
+<script language="JavaScript" src="/js/swipe.js"></script>
+<script language="JavaScript">
+var MAX_PORTFW_FILTERING_NUM = 50;
+var MAX_COUNT_PER_PAGE = 10;
+var rowIndex = [];
+var rulesData = [];
+var current_page = 0;
+var total_page = 0;
+var start_index = 0;
+var end_index = 0;
+var start_ip1="~*dhcp_start_ip1~";
+var start_ip2="~*dhcp_start_ip2~";
+var start_ip3="~*dhcp_start_ip3~";
+var mySwipe;
+
+//upnp
+function btnApply_upnp()
+{
+	if(isMobileWeb() == 1)
+		removeSwipe();
+	document.getElementById('mainBody').style.display = 'none';
+	document.getElementById('divPrimaryNetworkRestarting').style.display = 'block';	
+	document.upnpForm.submit();
+	setTimeout("redirect(\"/cgi-bin/en-jio/mWPortForward.html\")", 8*1000);	
+	return true;	
+}
+
+//port_forwarding
+function EDPFRadio()
+{
+	if(document.getElementById("PORTFW_ENABLE").checked == true)
+	{
+		//loadingPortFWTable();
+		document.getElementById("portFwd_rules_settings").style.display = "block";		
+	}
+	else
+	{
+		document.getElementById("portFwd_rules_settings").style.display = "none";		
+	}		
+}
+
+function help()
+{	
+	addCustomMFRule();
+	document.getElementById("helpContent").style.display = "block";
+	document.getElementById("pf_desc").value="JioStream";
+	document.getElementById("pf_start_port").value="1000";
+	document.getElementById("pf_end_port").value="1010";	
+	document.getElementById("pf_protocol").selectedIndex=0;
+	document.getElementById("pf_ipAddr1").value = start_ip1;
+	document.getElementById("pf_ipAddr2").value = start_ip2;
+	document.getElementById("pf_ipAddr3").value = start_ip3;
+	document.getElementById("pf_ipAddr4").value="10";
+	document.getElementById("pf_desc").disabled = true;
+	document.getElementById("pf_start_port").disabled= true;
+	document.getElementById("pf_end_port").disabled = true;
+	document.getElementById("pf_protocol").disabled= true;
+	document.getElementById("pf_ipAddr3").disabled = true;
+	document.getElementById("pf_ipAddr4").disabled = true;
+	document.getElementById("btnOk").disabled= true;
+	
+	return true;
+}
+
+function btnCancelClicked()
+{
+	document.getElementById("pf_desc").value="";
+	document.getElementById("pf_end_port").value="";
+	document.getElementById("pf_start_port").value="";
+	document.getElementById("pf_protocol").selectedIndex=0;
+	document.getElementById("pf_ipAddr3").value = "";
+	document.getElementById("pf_ipAddr4").value="";
+	document.getElementById("lCustomFWError").style.display = "none";
+	document.getElementById("mbox").style.display = "none";
+	document.getElementById("bigContent").style.opacity="1";
+	document.getElementById("bigContent").style.background="#ffffff";
+	
+	document.getElementById("helpContent").style.display = "none";
+	document.getElementById("pf_desc").disabled = false;
+	document.getElementById("pf_start_port").disabled= false;
+	document.getElementById("pf_end_port").disabled = false;
+	document.getElementById("pf_protocol").disabled= false;
+	document.getElementById("pf_ipAddr3").disabled = false;
+	document.getElementById("pf_ipAddr4").disabled = false;	
+	document.getElementById("btnOk").disabled= false;	
+	return false;
+}
+
+function addCustomMFRule()
+{
+    document.getElementById("lCustomFWError").style.display = "none";
+	document.getElementById("bigContent").style.opacity="0.5";
+	document.getElementById("bigContent").style.background="#eaeae1";
+	document.getElementById("mbox").style.display = "block";
+	document.getElementById("pf_desc").value="";
+	document.getElementById("pf_start_port").value="";
+	document.getElementById("pf_end_port").value="";	
+	document.getElementById("pf_protocol").selectedIndex=0;
+	document.getElementById("pf_ipAddr1").value = start_ip1;
+	document.getElementById("pf_ipAddr2").value = start_ip2;	
+	document.getElementById("pf_ipAddr3").value="";	
+	document.getElementById("pf_ipAddr4").value="";		
+	return true;	
+}
+
+function btnOKClicked()
+{
+	//verify desc
+	var desc = document.getElementById("pf_desc");
+	var protocol = document.getElementById("pf_protocol").value;
+	var lan_ip = start_ip1+"."+start_ip2+"."+document.getElementById("pf_ipAddr3").value+"."+document.getElementById("pf_ipAddr4").value;
+	
+    if( checkEmpty(desc))
+    {
+ 		alert("Rule Name can not be empty.");
+		document.getElementById("bigContent").style.opacity="0.5";
+		document.getElementById("bigContent").style.background="#eaeae1";
+        return false;
+    }
+	
+	if( desc.value.length > 32 )
+	{
+		alert("The maximum length of Rule Name is 32.");
+		document.getElementById("bigContent").style.opacity="0.5";
+		document.getElementById("bigContent").style.background="#eaeae1";
+		return false;
+	}	
+	
+    if( (lan_ip.length == 0) || lan_ip == "")
+    {
+ 		alert("IP Address can not be empty.");
+		document.getElementById("bigContent").style.opacity="0.5";
+		document.getElementById("bigContent").style.background="#eaeae1";
+        return false;
+    }	
+
+	//verify lan ip	
+	if(isInteger(document.getElementById("pf_ipAddr3").value) == false || 
+		isInteger(document.getElementById("pf_ipAddr4").value) == false)
+	{
+		alert("IP Address is invalid.");
+		document.getElementById("bigContent").style.opacity="0.5";
+		document.getElementById("bigContent").style.background="#eaeae1";
+		return false;
+	}
+
+	if(lan_ip == "192.168.225.1")
+	{
+		alert("192.168.225.1 is host IP address.");
+		document.getElementById("bigContent").style.opacity="0.5";
+		document.getElementById("bigContent").style.background="#eaeae1";
+		return false;			
+	}
+
+	if(parseInt(document.getElementById("pf_ipAddr3").value) < 0 || parseInt(document.getElementById("pf_ipAddr3").value) > 255)
+	{
+		alert("Invalid IP address.");
+		document.getElementById("bigContent").style.opacity="0.5";
+		document.getElementById("bigContent").style.background="#eaeae1";
+		return false;		
+	}
+	
+	if(parseInt(document.getElementById("pf_ipAddr4").value) < 1 || parseInt(document.getElementById("pf_ipAddr4").value) > 254)
+	{
+		alert("Invalid IP address.");
+		document.getElementById("bigContent").style.opacity="0.5";
+		document.getElementById("bigContent").style.background="#eaeae1";
+		return false;		
+	}	
+
+	//Start Port
+	var start_port = document.getElementById("pf_start_port");
+    if( checkEmpty( start_port ) )
+    {
+ 		alert("Start port can not be empty.");
+		document.getElementById("bigContent").style.opacity="0.5";
+		document.getElementById("bigContent").style.background="#eaeae1";
+        return false;
+    }	
+	if(isInteger(start_port) == false)
+	{
+		alert("Start Port is invalid.");
+		document.getElementById("bigContent").style.opacity="0.5";
+		document.getElementById("bigContent").style.background="#eaeae1";
+		return;
+	}
+	
+	if(parseInt(start_port.value) < 1 || parseInt(start_port.value) > 65535)
+	{
+		alert("Start Port must be between 1 and 65535.");
+		document.getElementById("bigContent").style.opacity="0.5";
+		document.getElementById("bigContent").style.background="#eaeae1";
+		return false;		
+	}		
+
+	//End Port
+	var end_port = document.getElementById("pf_end_port");
+    if( checkEmpty( end_port ) )
+    {
+ 		alert("End port can not be empty.");
+		document.getElementById("bigContent").style.opacity="0.5";
+		document.getElementById("bigContent").style.background="#eaeae1";
+			return false;
+    }
+	
+	if(isInteger(end_port) == false)
+	{
+		alert("End Port is invalid.");
+		document.getElementById("bigContent").style.opacity="0.5";
+		document.getElementById("bigContent").style.background="#eaeae1";
+		return false;
+	}
+
+	if(parseInt(end_port.value) < 1 || parseInt(end_port.value) > 65535)
+	{
+		alert("End Port must be between 1 and 65535.");
+		document.getElementById("bigContent").style.opacity="0.5";
+		document.getElementById("bigContent").style.background="#eaeae1";
+		return false;		
+	}	
+	
+	if(parseInt(end_port.value) < parseInt(start_port.value))
+	{
+		alert("End Port must be larger than start port.");
+		document.getElementById("bigContent").style.opacity="0.5";
+		document.getElementById("bigContent").style.background="#eaeae1";
+		return false;		
+	}	
+	
+	if(parseInt(end_port.value) == parseInt(start_port.value))
+	{
+		for(var i = 0; i< rowIndex.length; i++)
+		{		
+			if((rulesData[i].start_port == start_port.value) && ((rulesData[i].protocol == protocol)||(protocol == 2)))
+			{
+				alert("This rule is invalid.");
+				document.getElementById("bigContent").style.opacity="0.5";
+				document.getElementById("bigContent").style.background="#eaeae1";
+				return false;
+			}		
+		}
+	}
+
+	//document.getElementById("NoEntry").style.display = "none";	
+	var is_no_entry = document.getElementById("registration_list_table").rows[1].cells[0].innerHTML;
+	if(is_no_entry != null)
+	{
+		if(is_no_entry == "No entries found")
+		{
+			insetNoEntryRow(false);
+		}
+	}
+
+	current_page = parseInt(total_page);
+	
+	var insert_entry = {idx:(rulesData.length+1), desc:desc.value, lan_ip:lan_ip, start_port:start_port.value,end_port:end_port.value, protocol:protocol};
+	rowIndex.push((rulesData.length+1)); 
+	rulesData.push(insert_entry);
+	total_page = (rulesData.length)/MAX_COUNT_PER_PAGE;
+	
+	document.getElementById("pf_desc").value="";
+	end_port.value="";
+	start_port.value="";
+	document.getElementById("pf_protocol").selectedIndex=0;
+	lan_ip="";
+	
+	document.getElementById("lCustomFWError").style.display = "none";
+	document.getElementById("mbox").style.display = "none";
+	document.getElementById("bigContent").style.opacity="1";
+	document.getElementById("bigContent").style.background="#ffffff";
+
+	loadingPortMFTable();
+	return true;
+}
+
+function btnApply_portfwd()
+{
+	var ruleList = "";
+	for(var i = 0; i< rulesData.length; i++)
+	{
+		ruleList = ruleList+rulesData[i].desc+","+rulesData[i].start_port+","+rulesData[i].end_port+","+rulesData[i].protocol+","+rulesData[i].lan_ip+";";	
+	}
+	
+	var ruletables = document.getElementById("PF_RULES_TABLES");
+	ruletables.value= ruleList;
+	if(isMobileWeb() == 1)
+		removeSwipe();
+	document.getElementById('mainBody').style.display = 'none';
+	document.getElementById('divPrimaryNetworkRestarting').style.display = 'block';	
+	document.myForm.submit();
+	setTimeout("redirect(\"/cgi-bin/en-jio/mWPortForward.html\")", 8*1000);
+    return true;
+}
+
+function insetNoEntryRow(isInsert)
+{
+	var registration_list_table = document.getElementById("registration_list_table");
+	if(isInsert == true)
+	{
+		var new_row = registration_list_table.insertRow(1);
+		new_row.className = "row_item";
+		new_row.id = (1);
+		new_row.onmouseover = function() {highlight(new_row.id);};
+		new_row.onmouseout  = function() {dehighlight(new_row.id);};
+		new_row.onclick     = function() {select_registration(new_row.id);};
+
+		var td1 = document.createElement("td");
+		td1.appendChild(document.createTextNode("No entries found"));
+		td1.style.textAlign="left";
+		td1.setAttribute("colspan", "5");
+		new_row.appendChild(td1);
+	}
+	else
+	{
+		registration_list_table.deleteRow(1);
+	}
+}
+
+function DeleteEntry(x)
+{
+	var registration_list_table = document.getElementById("registration_list_table");
+	for(var i = 0; i< rowIndex.length; i++)
+	{		
+		if(rulesData[i].idx == x)
+		{
+			rulesData.splice(i, 1);
+			break;
+		}
+	}	
+	var index = rowIndex.indexOf(x);
+	rowIndex.splice(index, 1);
+	registration_list_table.deleteRow((index-start_index)+1);
+	total_page = (rulesData.length)/MAX_COUNT_PER_PAGE;
+	
+	if(rulesData.length == 0)
+	{
+		insetNoEntryRow(true);
+	}
+	else
+	{
+		loadingPortMFTable();
+	}
+}
+
+function insert_registration(no, registration)
+{
+	if((rulesData.length+1) > MAX_PORTFW_FILTERING_NUM )
+	{
+		return false;
+	}
+	
+    var registration_list_table = document.getElementById("registration_list_table");
+
+    var new_row = registration_list_table.insertRow(no+1);
+    new_row.className = "row_item";
+    new_row.id = (no+1);
+    new_row.onmouseover = function() {highlight(new_row.id);};
+    new_row.onmouseout  = function() {dehighlight(new_row.id);};
+    new_row.onclick     = function() {select_registration(new_row.id);};
+	
+    var td2 = document.createElement("td");
+    td2.appendChild(document.createTextNode(registration.desc));
+    td2.style.textAlign="center";
+
+    var td3 = document.createElement("td");
+    td3.appendChild(document.createTextNode(registration.lan_ip));
+    td3.style.textAlign="center";	
+
+	var port_range = registration.start_port +":"+registration.end_port;
+    var td4 = document.createElement("td");
+    td4.appendChild(document.createTextNode(port_range));
+    td4.style.textAlign="center";
+	
+    var td5 = document.createElement("td");
+	var protocol = "TCP";
+	switch(registration.protocol)
+	{
+		case "1"://TCP
+			protocol = "UDP";
+			break;
+		case "2":
+			protocol = "BOTH";
+			break;
+		default:
+			protocol = "TCP";
+			break;
+	}
+	
+    td5.appendChild(document.createTextNode(protocol));
+    td5.style.textAlign="center";
+	
+	var td6 = document.createElement("td");
+	var img_src = document.createElement("img");
+	img_src.setAttribute("src", "/images/close.png");	
+	img_src.setAttribute("style", "cursor:pointer");
+	img_src.setAttribute("title", "Delete");		
+	img_src.setAttribute("onclick", "DeleteEntry("+(registration.idx)+")");
+	td6.style.textAlign="center";
+	td6.appendChild(img_src);
+	
+	
+    //new_row.appendChild(td1);
+    new_row.appendChild(td2);
+    new_row.appendChild(td3);
+    new_row.appendChild(td4);
+    new_row.appendChild(td5);
+	new_row.appendChild(td6);	
+	
+    return new_row;
+}
+
+function clear_table()
+{
+    while(document.getElementById("registration_list_table").rows.length > 1)
+        document.getElementById("registration_list_table").deleteRow(-1);
+}
+
+function loadingPortMFTable()
+{  
+	start_index = current_page*MAX_COUNT_PER_PAGE;
+	end_index = (current_page+1)*MAX_COUNT_PER_PAGE;
+	
+	if(end_index > rulesData.length)
+	  end_index = rulesData.length;
+
+	clear_table();
+	var count = end_index-start_index;
+	
+	for(var j = 0; j<count ; j++)
+	{		
+		var index = start_index+j;
+		var insert_entry = {idx:rulesData[index].idx, desc:rulesData[index].desc, lan_ip:rulesData[index].lan_ip, start_port:rulesData[index].start_port, end_port:rulesData[index].end_port, protocol:rulesData[index].protocol};
+		insert_registration(j, insert_entry);	
+	}
+	if((rulesData.length == 0))
+	{
+		//No entries found.
+		insetNoEntryRow(true);
+	}
+}
+
+
+function next_page()
+{
+	document.getElementById("change_page").innerHTML = "";
+	current_page=current_page+1;
+	if((current_page+1) < total_page)
+	{
+		document.getElementById("change_page").innerHTML ="<div onclick='next_page();' style='cursor: pointer; float: right;'>&nbsp;&nbsp;Next >></div>";
+	}
+	document.getElementById("change_page").innerHTML += "<div onclick='previous_page();' style='cursor: pointer; float: right;'><< Previous</div>";
+    loadingPortMFTable();
+}
+
+function previous_page()
+{
+	document.getElementById("change_page").innerHTML = "<div onclick='next_page();' style='cursor: pointer; float: right;'>&nbsp;&nbsp;Next >> </div>";
+	if((current_page-1) > 0)
+	{
+		document.getElementById("change_page").innerHTML +="<div onclick='previous_page();' style='cursor: pointer; float: right;'><< Previous</div>";
+	}
+	current_page=current_page-1;
+
+    loadingPortMFTable();
+}
+	
+function update_content()
+{
+	var port_fw_state = "~*port_fwd_state:0~";	
+	var upnp_enabled = "~*upnp_enable:0~";	
+	var portfwd_rules = "~*port_fwd_entries~";	
+	var rule = portfwd_rules.split(";");
+	current_page = 0;
+  
+    if((rule.length-1) > MAX_COUNT_PER_PAGE)
+    {
+        document.getElementById("change_page").innerHTML = "<div onclick='next_page();' style='cursor: pointer;'>Next >></div>";
+    }
+	
+	if(rule.length > 0)
+	{
+		for(var i = 0; i<(rule.length-1) ; i++)
+		{
+			var pattern = rule[i].split(",");
+			var rule_entry = {idx:parseInt(pattern[0]),desc:pattern[1], lan_ip:pattern[2], start_port:pattern[3], end_port:pattern[4], protocol:pattern[5]};			
+			rowIndex.push(parseInt(pattern[0])); 
+			rulesData.push(rule_entry);		
+		}
+	}
+	
+	rulesData.sort(function (a, b) {
+	  if (a.idx > b.idx) {
+		return 1;
+	  }
+	  if (a.idx < b.idx) {
+		return -1;
+	  }
+	  // a must be equal to b
+	  return 0;
+	});		
+	
+	total_page = (rulesData.length)/MAX_COUNT_PER_PAGE;
+	
+	loadingPortMFTable();	
+
+	if(port_fw_state == "1")
+	{		
+		document.getElementById("portFwd_rules_settings").style.display = "block";
+		document.getElementById("PORTFW_ENABLE").checked = true;
+		document.getElementById("PORTFW_ENABLE_DISABLED").checked = false;
+	}
+	else
+	{		
+		document.getElementById("portFwd_rules_settings").style.display = "none";
+		document.getElementById("PORTFW_ENABLE").checked = false;
+		document.getElementById("PORTFW_ENABLE_DISABLED").checked = true;
+	}	
+	
+	if(upnp_enabled == "1")
+	{
+		document.getElementById("UPNP_ENABLE").checked = true;	
+		document.getElementById("UPNP_ENABLE_DISABLED").checked = false;
+	}
+	else
+	{
+		document.getElementById("UPNP_ENABLE").checked = false;
+		document.getElementById("UPNP_ENABLE_DISABLED").checked = true;
+	}	
+
+	if(screen.width <= 530)
+	{	    
+		var br1 = document.createElement("br");		
+		document.getElementById("lUPNP_mode").style.width="50px";
+		var pForwardRules = document.getElementById("pForwardRules");
+		pForwardRules.appendChild(br1);			
+	}
+	mySwipe = leftSwipe("bigContent", "network", "staticTable");	
+}
+
+function removeSwipe()
+{
+    mySwipe.unhookEventListener(document.getElementById("bigContent"),mySwipe);
+}
+</script>
+</head>
+
+<body onload="update_content();">  
+<div class="bigContent" id="bigContent">
+<div class="maintitle">
+<label id="title" class="title">Gaming & Apps Management</label>
+</div>
+<hr color="#D8D8D8" size="1px" width="100%"> </hr>
+<div id="Content" class="content">  
+  <div id="mainBody">
+  <label style="font-size:13px">Your JioFi3 has been enabled with certain security features to prevent malicious programs or hackers accessing the device
+	and network. However certain end user applications like Playstation, Xbox, DVR and so on may need access certain ports over the internet to support online multiplayer gaming and other services. To cater such needs, this page with port forwarding and UPnP features can be used.
+	<p>	
+	You can configure such settings here. For more help refer <a href="#." onclick="help();" style="font-size:14px"><b>here</b></a>.</label>
+	
+  <br style="clear:both">
+	<form name="upnpForm" method="post" action="/cgi-bin/en-jio/mWUpnp_Apply.html">
+		<input type="hidden" name="RequestVerifyToken" value="~*token~">
+		<label id="title" class="title">UPnP Setting</label>
+		<div id="UpnpSetting">				
+		<div id="rdRadioPF_mode" class="inlineDiv">
+			<label id="lUPNP_mode" class="subtt3">UPnP:</label>   
+			<input type="radio" name="UPNP_ENABLE" id="UPNP_ENABLE" value="1"><label for="UPNP_ENABLE">Enabled</label>
+			<input type="radio" name="UPNP_ENABLE" id="UPNP_ENABLE_DISABLED" value="0"><label for="UPNP_ENABLE_DISABLED">Disabled</label>				
+		</div>			
+		</div>
+		<div class="buttonStyle" align="left">
+		<input id="btUpdate2" value="Save" onclick="btnApply_upnp()" type="button">
+		</div>
+	</form>
+	
+ <br style="clear:both">
+	<form name="myForm" method="post" action="/cgi-bin/en-jio/mWPortForward_Apply.html">
+		<input type="hidden" name="RequestVerifyToken" value="~*token~">
+		<input type="hidden" name="PF_RULES_TABLES" id="PF_RULES_TABLES">	
+		<label id="title" class="title">Port Forward</label>
+		<div id="PortFWEnabled">
+		<div id="rdRadioPF" onclick="EDPFRadio()" class="inlineDiv">
+			<label id="lMF" class="subtt3">Custom Port Forwarding Rules:</label><span id="pForwardRules"></span>
+			<input type="radio" name="PORTFW_ENABLE" id="PORTFW_ENABLE" value="1"><label for="PORTFW_ENABLE">Enabled</label>
+			<input type="radio" name="PORTFW_ENABLE" id="PORTFW_ENABLE_DISABLED" value="0"><label for="PORTFW_ENABLE_DISABLED">Disabled</label>		
+		</div>
+		<div style="display: none;" id="portFwd_rules_settings">		
+		<div class="buttonStyleIn2" align="left">		
+		<input id="btnAddRule" value="Add Rule" onclick="addCustomMFRule()" type="button">		
+		</div>
+		<br style="clear:both">
+		<div id="change_page" align="right" style="color: rgb(53, 148, 218); width: 90%;"></div>
+		<div id="staticTable" style="overflow-x:auto;">
+		<table id="registration_list_table" class="dataTbl10 example" style="margin-top: 5px" width="90%">
+		<thead>
+		<tr>
+		<th id="ltPWRuleName" width="23%">Rule Name</th>
+		<th id="ltPWIP" width="25%">IP Address</th>
+		<th id="ltPWExternelPort" width="25%">Port Range</th>					
+		<th id="ltPWPortocol" width="20%">Protocol</th>
+		<th class="close">&nbsp;</th>
+		</tr>
+		</thead>
+		</table>
+		</div>
+		</div>	  
+		</div>
+		<div class="buttonStyle" align="left">
+		<input id="btUpdate" value="Save" onclick="btnApply_portfwd()" type="button">
+		</div>		
+	</form>
+</div>	 	  
+ <div style="display: none;" id="divPrimaryNetworkRestarting" align="center">
+	<label class="warm" id="lPassErrorMesPN">Applying Gaming & Apps Management settings... Please wait a while... </label>	
+	<br><br>		
+	<img src="/images/loading.gif" width="100" height="100"> 	
+</div> 	 
+</div>
+</div>
+
+<div id="mbox" class="ontop">
+	<!--div id="popup" class="popUpBox" style="width:425px;"-->
+	<div id="popup" class="popUpBox">
+		<h2 style="margin:-15px 95%">
+		<a href="#." class="close" onclick="btnCancelClicked()"><img src="/images/close_button.png" alt="" height="25px"></a>
+		</h2>
+			<br style="clear:both">
+			<h1>Port Forwarding Rule</h1>
+			<div class="pBoxCont">
+			<div id="helpContent" style="display: none;padding-top:20px;" align="left">
+			<div class="subtt4">
+			<label style="font-size:14px">Rule JioStream is created to allow Internet packets with protocol TCP and port range 1000 - 1010 be sent to home gaming device or computer with IP address 192.168.~*dhcp_start_ip3~.10.</label>
+			</div>
+			<br style="clear:both">
+			</div>			
+			<br style="clear:both">	
+			<div class="inlineDiv2">
+			<label id="lPort_pw">Rule Name:</label>
+			<div class="subtt6">
+			<input name="pf_desc" id="pf_desc" type="text" maxLength="32" style="width:57%;text-align:center;margin-left: -25px">			
+			</div>
+			</div>
+			<div class="inlineDiv2">
+			<label id="lIP_pw">IP Address:</label>
+			<div class="subtt5">
+			<input type="text" id="pf_ipAddr1" style="width:12%;text-align:center;margin-left: -25px" disabled>.
+			<input type="text" id="pf_ipAddr2" style="width:12%;text-align:center" disabled>.
+			<input type="text" id="pf_ipAddr3" style="width:12%;text-align:center" maxlength="3">.
+			<input type="text" id="pf_ipAddr4" style="width:12%;text-align:center" maxlength="3">			
+			</div>
+			</div>	
+			<div class="inlineDiv2">
+			<label id="lPort_range_pw" style="display: inline-block;">Port Range:</label>
+			<input type="text" id="pf_start_port" style="width:23.5%;text-align:center;margin-left: -25px" maxlength="5">
+			&nbsp;&nbsp;:&nbsp;&nbsp;
+			<input type="text" id="pf_end_port" style="width:23.5%;text-align:center" maxlength="5">
+		
+			</div>
+			<div class="inlineDiv2">
+			<label id="lProtocol_pw">Protocol:</label>
+			<select id="pf_protocol" name="pf_protocol" class="grayinput12" style="width:57%;margin-left: -25px">
+			<option value="0">TCP</option>
+			<option value="1">UDP</option>
+			<option value="2">BOTH</option>
+			</select>					
+			</div>			
+			<label id="lCustomFWError" class="lable13" style="display: none"></label>	
+			<div class="mboxButton" align="center">
+			<input id="btnOk" value="OK" onclick="btnOKClicked()" type="button">
+			<input id="btnCancel" value="Cancel" onclick="btnCancelClicked()" type="button" style="margin-left:8px">		
+			</div>
+			<br style="clear:both">
+			</div>
+			</div>	
+	</div>	
+</body>
+</html>

@@ -1,0 +1,561 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>MAC Address Filter</title>
+<meta http-equiv="Content-Type" content="text/html; charset=big5">
+<link href="/css/stylesheet.css" rel="stylesheet" type="text/css" />
+<link href="/css/elements.css" rel="stylesheet" type="text/css" />
+<link href="/css/table.css" rel="stylesheet" type="text/css" />
+<script language="JavaScript" src="/js/validate.js"></script>
+<script language="JavaScript" src="/js/message.js"></script>
+<script language="JavaScript" src="/js/common.js"></script>
+<script language="JavaScript" src="/js/swipe.js"></script>
+<script language="JavaScript">
+var MAX_MAC_FILTERING_NUM = 16;
+var rowIndex = [];
+var rulesData = [];
+var mySwipe;
+
+function insetNoEntryRow(isInsert)
+{
+	var registration_list_table = document.getElementById("registration_list_table");
+	if(isInsert == true)
+	{
+		var new_row = registration_list_table.insertRow(1);
+		new_row.className = "row_item";
+		new_row.id = (1);
+
+		var td1 = document.createElement("td");
+		td1.appendChild(document.createTextNode("No entries found"));
+		td1.style.textAlign="left";
+		td1.setAttribute("colspan", "3");
+		new_row.appendChild(td1);
+	}
+	else
+	{
+		registration_list_table.deleteRow(1);
+	}
+}
+function addCustomMFRule()
+{
+	if(rowIndex.length >= MAX_MAC_FILTERING_NUM )
+	{
+		alert("The maximum number of rules is 16.");
+		return false;
+	}
+	
+    document.getElementById("lCustomFWError").style.display = "none";
+	document.getElementById("mbox").style.display = "block";
+	document.getElementById("bigContent").style.opacity="0.5";
+	document.getElementById("bigContent").style.background="#eaeae1";
+}
+
+function showMACFilters()
+{
+	if (document.getElementById('MACFILTER_ENABLE').checked == true)
+	{
+		 document.getElementById('macRuleShow').style.display = 'block';
+	}
+	else
+	{
+		 document.getElementById('macRuleShow').style.display = 'none';
+	}	
+}
+
+
+function btnApply()
+{
+	var ruleList = "";
+	
+	if((rulesData.length == 0)
+		&&(document.getElementById("MACFILTER_ENABLE").checked == true)
+		&&(document.getElementById("MACFILTER_MODE").checked == true))
+	{
+		if ( !confirm ("Allow list is empty, if you enable allow mode, all wireless client cannot associate to this device, are you sure you want to do this?") )
+		{
+			return false;			
+		}
+	}
+	
+	for(var i = 0; i< rulesData.length; i++)
+	{
+		ruleList = ruleList+rulesData[i].desc+","+rulesData[i].macaddr+";";	
+	}
+	
+	var ruletables = document.getElementById("MF_RULES_TABLES");	
+	ruletables.value= ruleList;
+	if(isMobileWeb() == 1)
+		removeSwipe();
+	document.getElementById('macEnabled').style.display = 'none';
+	document.getElementById('divPrimaryNetworkRestarting').style.display = 'block';	
+    document.myForm.submit();	
+	setTimeout("redirect(\"/cgi-bin/en-jio/mWMAC.html\")", 8*1000);
+    return true;
+}
+
+function insert_registration(no, registration)
+{
+	if(rowIndex.length >= MAX_MAC_FILTERING_NUM )
+	{
+		alert("The maximum number of rules is 16.");
+		return false;
+	}
+    var registration_list_table = document.getElementById("registration_list_table");
+    var new_row = registration_list_table.insertRow(no+1);
+
+    new_row.className = "row_item";
+    new_row.id = (registration.idx+1);
+
+    var td2 = document.createElement("td");
+    td2.appendChild(document.createTextNode(registration.desc));
+    td2.style.textAlign="center";
+	
+    var td3 = document.createElement("td");
+    td3.appendChild(document.createTextNode(registration.macaddr));
+    td3.style.textAlign="center";
+	
+	var td4 = document.createElement("td");
+	var img_src = document.createElement("img");
+	img_src.setAttribute("src", "/images/close.png");
+	img_src.setAttribute("style", "cursor:pointer");
+	img_src.setAttribute("title", "Delete");
+	img_src.setAttribute("onclick", "DeleteEntry("+(no)+")");
+	td4.style.textAlign="center";
+	td4.appendChild(img_src);
+	
+    //new_row.appendChild(td1);
+    new_row.appendChild(td2);
+    new_row.appendChild(td3);
+    new_row.appendChild(td4);
+	
+	rowIndex.push(no); 
+	var rule_entry = {idx:no,desc:registration.desc, macaddr:registration.macaddr};
+    rulesData.push(rule_entry);	
+	
+	
+    return new_row;
+}
+
+function btnOKClicked()
+{
+	document.getElementById("bigContent").style.opacity="1";
+	document.getElementById("bigContent").style.background="#ffffff";	
+		
+	var mac = document.getElementById("mf_macAddr");
+    var desc = 	document.getElementById("mf_desc");
+    if( checkEmpty(desc) )
+    {
+ 		alert("Description can not be empty.");
+		document.getElementById("bigContent").style.opacity="0.5";
+		document.getElementById("bigContent").style.background="#eaeae1";	
+        return false;
+    }	
+
+    if( desc.value.length > 32 )
+    {
+ 		alert("The maximum length of Description is 32.");
+		document.getElementById("bigContent").style.opacity="0.5";
+		document.getElementById("bigContent").style.background="#eaeae1";	
+        return false;
+    }
+	
+    if (!validate_mac(mac)) {
+		alert("Invalid MAC address.");
+		document.getElementById("bigContent").style.opacity="0.5";
+		document.getElementById("bigContent").style.background="#eaeae1";	
+        return false;
+    }
+	
+	//check if mac is duplicated
+	for(var i = 0; i< rulesData.length; i++)
+	{
+		if(rulesData[i].macaddr.toLocaleLowerCase() == mac.value.toLocaleLowerCase())
+		{
+			alert("Duplicated MAC address.");
+			document.getElementById("bigContent").style.opacity="0.5";
+			document.getElementById("bigContent").style.background="#eaeae1";	
+			return false;		
+		}
+	}	
+	var is_no_entry = document.getElementById("registration_list_table").rows[1].cells[0].innerHTML;
+	if(is_no_entry != null)
+	{
+	if(is_no_entry == "No entries found")
+	{
+		insetNoEntryRow(false);
+	}
+	}
+	
+	var insert_entry = {idx:rowIndex.length, desc:desc.value, macaddr:mac.value};		
+	insert_registration(rowIndex.length, insert_entry);	
+	document.getElementById("mf_desc").value="";
+	document.getElementById("mf_macAddr").value="";
+	document.getElementById("mf_desc").value="";
+	document.getElementById("lCustomFWError").style.display = "none";
+	document.getElementById("mbox").style.display = "none";
+}
+
+function btnCancelClicked()
+{
+	document.getElementById("bigContent").style.opacity="1";
+	document.getElementById("bigContent").style.background="#ffffff";	
+	
+	document.getElementById("mf_desc").value="";
+	document.getElementById("mf_macAddr").value="";
+	document.getElementById("lCustomFWError").style.display = "none";
+	document.getElementById("mbox").style.display = "none";
+	return false;
+}
+
+function DeleteEntry(x)
+{
+	var registration_list_table = document.getElementById("registration_list_table");
+	
+	for(var i = 0; i< rowIndex.length; i++)
+	{		
+		if(rulesData[i].idx == x)
+		{
+			rulesData.splice(i, 1);
+			break;
+		}
+	}
+	
+	var index = rowIndex.indexOf(x);
+	rowIndex.splice(index, 1);
+	registration_list_table.deleteRow(index+1);
+	if(rowIndex.length == 0)
+	{
+		insetNoEntryRow(true);
+	}
+}
+
+function loadingPortMFTable()
+{
+	var count = 0;
+	var acl_address_value_1_enabled = "~~wlan_paed_acl_address_1_enabled~";	
+	if(acl_address_value_1_enabled != "" && acl_address_value_1_enabled == "1")
+	{		
+	    var wlan_paed_acl_address_1 = "~~wlan_paed_acl_address_1~";	
+	    var acl_address_value_1_desc = "~~wlan_paed_acl_address_1_desc~";
+             if(wlan_paed_acl_address_1 != "")	
+		{
+			var insert_entry = {idx:count, desc:acl_address_value_1_desc, macaddr:wlan_paed_acl_address_1};	
+			insert_registration(count, insert_entry);
+			count++; 
+		}		
+	}	
+	var acl_address_value_2_enabled = "~~wlan_paed_acl_address_2_enabled~";
+	if(acl_address_value_2_enabled != "" && acl_address_value_2_enabled == "1")
+	{
+		var wlan_paed_acl_address_2 = "~~wlan_paed_acl_address_2~";	
+		var acl_address_value_2_desc = "~~wlan_paed_acl_address_2_desc~";	
+		if(wlan_paed_acl_address_2 != "")
+		{		
+			var insert_entry = {idx:count, desc:acl_address_value_2_desc, macaddr:wlan_paed_acl_address_2};	
+			insert_registration(count, insert_entry);
+			count++; 
+		}	
+	}
+
+	var acl_address_value_3_enabled = "~~wlan_paed_acl_address_3_enabled~";
+	if(acl_address_value_3_enabled != "" && acl_address_value_3_enabled == "1")
+	{		
+	var wlan_paed_acl_address_3 = "~~wlan_paed_acl_address_3~";	
+	var acl_address_value_3_desc = "~~wlan_paed_acl_address_3_desc~";
+	
+	if(wlan_paed_acl_address_3 != "")
+	{		
+		var insert_entry = {idx:count, desc:acl_address_value_3_desc, macaddr:wlan_paed_acl_address_3};	
+		insert_registration(count, insert_entry);
+		count++; 
+	}
+	}
+	
+	var acl_address_value_4_enabled = "~~wlan_paed_acl_address_4_enabled~";
+	if(acl_address_value_4_enabled != "" && acl_address_value_4_enabled == "1")
+	{
+	var wlan_paed_acl_address_4 = "~~wlan_paed_acl_address_4~";	
+	var acl_address_value_4_desc = "~~wlan_paed_acl_address_4_desc~";
+	if(wlan_paed_acl_address_4 != "")
+	{		
+		var insert_entry = {idx:count, desc:acl_address_value_4_desc, macaddr:wlan_paed_acl_address_4};	
+		insert_registration(count, insert_entry);
+		count++; 
+	}
+	}
+	
+	var acl_address_value_5_enabled = "~~wlan_paed_acl_address_5_enabled~";
+	if(acl_address_value_5_enabled != "" && acl_address_value_5_enabled == "1")
+	{
+	var wlan_paed_acl_address_5 = "~~wlan_paed_acl_address_5~";	
+	var acl_address_value_5_desc = "~~wlan_paed_acl_address_5_desc~";
+	if(wlan_paed_acl_address_5 != "")
+	{		
+		var insert_entry = {idx:count, desc:acl_address_value_5_desc, macaddr:wlan_paed_acl_address_5};	
+		insert_registration(count, insert_entry);
+		count++; 
+	}
+	}		
+	var acl_address_value_6_enabled = "~~wlan_paed_acl_address_6_enabled~";
+	if(acl_address_value_6_enabled != "" && acl_address_value_6_enabled == "1")
+	{	
+	var wlan_paed_acl_address_6 = "~~wlan_paed_acl_address_6~";	
+	var acl_address_value_6_desc = "~~wlan_paed_acl_address_6_desc~";
+	if(wlan_paed_acl_address_6 != "")
+	{		
+		var insert_entry = {idx:count, desc:acl_address_value_6_desc, macaddr:wlan_paed_acl_address_6};	
+		insert_registration(count, insert_entry);
+		count++; 
+	}
+	}	
+	var acl_address_value_7_enabled = "~~wlan_paed_acl_address_7_enabled~";
+	if(acl_address_value_7_enabled != "" && acl_address_value_7_enabled == "1")
+	{	
+	var wlan_paed_acl_address_7 = "~~wlan_paed_acl_address_7~";	
+	var acl_address_value_7_desc = "~~wlan_paed_acl_address_7_desc~";
+	if(wlan_paed_acl_address_7 != "")
+	{		
+		var insert_entry = {idx:count, desc:acl_address_value_7_desc, macaddr:wlan_paed_acl_address_7};	
+		insert_registration(count, insert_entry);
+		count++; 
+	}
+	}		
+	var acl_address_value_8_enabled = "~~wlan_paed_acl_address_8_enabled~";
+	if(acl_address_value_8_enabled != "" && acl_address_value_8_enabled == "1")
+	{	
+	var wlan_paed_acl_address_8 = "~~wlan_paed_acl_address_8~";	
+	var acl_address_value_8_desc = "~~wlan_paed_acl_address_8_desc~";
+	if(wlan_paed_acl_address_8 != "")
+	{		
+		var insert_entry = {idx:count, desc:acl_address_value_8_desc, macaddr:wlan_paed_acl_address_8};	
+		insert_registration(count, insert_entry);
+		count++; 
+	}
+	}	
+
+	var acl_address_value_9_enabled = "~~wlan_paed_acl_address_9_enabled~";
+	if(acl_address_value_9_enabled != "" && acl_address_value_9_enabled == "1")
+	{
+	var wlan_paed_acl_address_9 = "~~wlan_paed_acl_address_9~";	
+	var acl_address_value_9_desc = "~~wlan_paed_acl_address_9_desc~";
+	if(wlan_paed_acl_address_9 != "")
+	{		
+		var insert_entry = {idx:count, desc:acl_address_value_9_desc, macaddr:wlan_paed_acl_address_9};	
+		insert_registration(count, insert_entry); 
+		count++; 
+	}
+	}		
+	var acl_address_value_10_enabled = "~~wlan_paed_acl_address_10_enable~";
+	if(acl_address_value_10_enabled != "" && acl_address_value_10_enabled == "1")
+	{
+	var wlan_paed_acl_address_10 = "~~wlan_paed_acl_address_10~";	
+	var acl_address_value_10_desc = "~~wlan_paed_acl_address_10_desc~";
+	if(wlan_paed_acl_address_10 != "")
+	{		
+		var insert_entry = {idx:count, desc:acl_address_value_10_desc, macaddr:wlan_paed_acl_address_10};	
+		insert_registration(count, insert_entry);
+		count++; 
+	}	
+	}		
+	var acl_address_value_11_enabled = "~~wlan_paed_acl_address_11_enable~";
+	if(acl_address_value_11_enabled != "" && acl_address_value_11_enabled == "1")
+	{
+	var wlan_paed_acl_address_11 = "~~wlan_paed_acl_address_11~";	
+	var acl_address_value_11_desc = "~~wlan_paed_acl_address_11_desc~";
+	if(wlan_paed_acl_address_11 != "")
+	{		
+		var insert_entry = {idx:count, desc:acl_address_value_11_desc, macaddr:wlan_paed_acl_address_11};	
+		insert_registration(count, insert_entry);
+		count++; 
+	}
+	}		
+	var acl_address_value_12_enabled = "~~wlan_paed_acl_address_12_enable~";
+	if(acl_address_value_12_enabled != "" && acl_address_value_12_enabled == "1")
+	{
+	var wlan_paed_acl_address_12 = "~~wlan_paed_acl_address_12~";	
+	var acl_address_value_12_desc = "~~wlan_paed_acl_address_12_desc~";
+	if(wlan_paed_acl_address_12 != "")
+	{		
+		var insert_entry = {idx:count, desc:acl_address_value_12_desc, macaddr:wlan_paed_acl_address_12};	
+		insert_registration(count, insert_entry);
+		count++; 
+	}	
+	}		
+	var acl_address_value_13_enabled = "~~wlan_paed_acl_address_13_enable~";
+	if(acl_address_value_13_enabled != "" && acl_address_value_13_enabled == "1")
+	{
+	var wlan_paed_acl_address_13 = "~~wlan_paed_acl_address_13~";	
+	var acl_address_value_13_desc = "~~wlan_paed_acl_address_13_desc~";
+	if(wlan_paed_acl_address_13 != "")
+	{		
+		var insert_entry = {idx:count, desc:acl_address_value_13_desc, macaddr:wlan_paed_acl_address_13};	
+		insert_registration(count, insert_entry);
+		count++; 
+	}
+	}		
+	var acl_address_value_14_enabled = "~~wlan_paed_acl_address_14_enable~";
+	if(acl_address_value_14_enabled != "" && acl_address_value_14_enabled == "1")
+	{
+	var wlan_paed_acl_address_14 = "~~wlan_paed_acl_address_14~";	
+	var acl_address_value_14_desc = "~~wlan_paed_acl_address_14_desc~";
+	if(wlan_paed_acl_address_14 != "")
+	{		
+		var insert_entry = {idx:count, desc:acl_address_value_14_desc, macaddr:wlan_paed_acl_address_14};	
+		insert_registration(count, insert_entry);
+		count++; 
+	}
+	}		
+	var acl_address_value_15_enabled = "~~wlan_paed_acl_address_15_enable~";
+	if(acl_address_value_15_enabled != "" && acl_address_value_15_enabled == "1")
+	{		
+	var wlan_paed_acl_address_15 = "~~wlan_paed_acl_address_15~";	
+	var acl_address_value_15_desc = "~~wlan_paed_acl_address_15_desc~";
+	if(wlan_paed_acl_address_15 != "")
+	{		
+		var insert_entry = {idx:count, desc:acl_address_value_15_desc, macaddr:wlan_paed_acl_address_15};	
+		insert_registration(count, insert_entry);
+		count++; 
+	}	
+	}	
+	var acl_address_value_16_enabled = "~~wlan_paed_acl_address_16_enable~";
+	if(acl_address_value_16_enabled != "" && acl_address_value_16_enabled == "1")
+	{
+	var wlan_paed_acl_address_16 = "~~wlan_paed_acl_address_16~";	
+	var acl_address_value_16_desc = "~~wlan_paed_acl_address_16_desc~";
+	if(wlan_paed_acl_address_16 != "")
+	{		
+		var insert_entry = {idx:count, desc:acl_address_value_16_desc, macaddr:wlan_paed_acl_address_16};	
+		insert_registration(count, insert_entry);
+		count++; 
+	}
+	}	
+
+	if((rowIndex.length == 0))
+	{
+		insetNoEntryRow(true);
+	}
+}
+
+function update_content()
+{
+	var mac_filter_state = "~~MACFILTER_ENABLE~"; 
+	//MacFilterStatus
+	document.getElementById("mac_rules_settings").style.display = "block";
+	document.getElementById("rdRadioPF_mode").style.display = "block";
+	loadingPortMFTable();
+	
+	if(mac_filter_state == "1")
+	{
+		document.getElementById("MACFILTER_DISABLED").checked = false;
+		document.getElementById("MACFILTER_ENABLE").checked = true;		
+		document.getElementById("MacFilterStatus").innerHTML = "The current status of MAC Address Filter is <b>Enabled</b>.";
+	}
+	else
+	{
+		document.getElementById("MACFILTER_DISABLED").checked = true;
+		document.getElementById("MACFILTER_ENABLE").checked = false;
+		document.getElementById("MacFilterStatus").innerHTML = "The current status of MAC Address Filter is <b>Disabled</b>.";		
+	}	
+
+	if(isMobileWeb() == 1)
+	{
+		document.getElementById("registration_list_table").style.width="100%";
+	}
+
+	if(screen.width <= 410)
+	{	    
+		var br1 = document.createElement("br");
+		var br2 = document.createElement("br");
+		var macFilter = document.getElementById("macFilter");
+		var macFilterMode = document.getElementById("macFilterMode");
+		macFilter.appendChild(br1);
+		macFilterMode.appendChild(br2);		
+	}
+	mySwipe = leftSwipe("bigContent", "network", "staticTable");	
+}
+function removeSwipe()
+{
+    mySwipe.unhookEventListener(document.getElementById("bigContent"),mySwipe);
+}
+</script>
+</head>
+
+<body onload="update_content();">  
+<form name="myForm" method="post" action="/cgi-bin/en-jio/mWMAC_Apply.html">
+<input type="hidden" name="RequestVerifyToken" value="~*token~">
+<input type="hidden" name="MF_RULES_TABLES" id="MF_RULES_TABLES">
+<div class="bigContent" id="bigContent">
+<div class="maintitle">
+<label id="title" class="title">MAC Address Filter</label>
+</div>
+<hr color="#D8D8D8" size="1px" width="100%"> </hr>
+<div id="Content" class="content">	
+<div id="macEnabled">
+	<label id="MacFilterStatus" class="inlineDiv"></label>
+	<div id="rdRadioPF" class="inlineDiv2">		
+		<label id="lMF" class="subttl">MAC Address Filter:</label><span id="macFilter"></span>
+		<input type="radio" name="MACFILTER_ENABLE" id="MACFILTER_ENABLE" ~cMACFILTER_ENABLE:1:0~ value="1"><label for="MACFILTER_ENABLE">Enabled</label>
+		<input type="radio" name="MACFILTER_ENABLE" id="MACFILTER_DISABLED" ~cMACFILTER_ENABLE:0:0~ value="0"><label for="MACFILTER_DISABLED">Disabled</label>		
+	</div>
+		<div id="rdRadioPF_mode" class="inlineDiv2">
+			<label id="lMF_mode" class="subttl">Mode Settings:</label><span id="macFilterMode"></span>
+			<input type="radio" name="MACFILTER_MODE" id="MACFILTER_MODE" ~cMACFILTER_MODE:1:0~  value="1"><label for="MACFILTER_MODE">Allow &nbsp;&nbsp;&nbsp; </label>
+			<input type="radio" name="MACFILTER_MODE" id="MACFILTER_MODE_DENY" ~cMACFILTER_MODE:0:0~  value="0"><label for="MACFILTER_MODE_DENY">Deny</label>
+			<div style="display: none;" id="mac_rules_settings">
+			<div class="buttonStyleIn2" id="divSaveButton" align="left">		
+			<input id="btUpdate" value="Add Rule" onclick="addCustomMFRule()" type="button">
+			</div>	
+			<br style="clear:both">		
+			<div id="staticTable" style="overflow-x:auto;">			
+			<table id="registration_list_table" class="dataTbl10 example" style="margin-top: 5px" width="80%">
+			 <thead>
+				<tr>
+					<th id="ltPWRuleName" width="40%">Description</th>
+					<th id="ltPWIP" width="40%">MAC Address</th>
+					<th class="close" width="20%">&nbsp;</th>
+				</tr>
+			</thead>				
+		</table>
+		</div>
+		</div>
+	</div>	
+    <div class="buttonStyle" id="divSaveButton" align="left">
+	<input id="btUpdate" value="Save" onclick="btnApply()" type="button">
+    </div>	
+</div>	
+ <div style="display: none;" id="divPrimaryNetworkRestarting" align="center">
+	<label class="warm" id="lPassErrorMesPN">Applying MAC Address Filter settings... Please wait a while... </label>	
+	<br><br>
+	<img src="/images/loading.gif" width="100" height="100"> 	
+</div> 
+</div>
+</div>
+</form>
+<div id="mbox" class="ontop">
+	<div id="popup" class="popUpBox">	
+		<h2 style="margin:-20px 95%;">
+		<a href="#." class="close" onclick="btnCancelClicked()"><img src="/images/close_button.png" alt="" height="25px"></a>
+		</h2>
+		<br style="clear:both">
+		<h1>MAC Filtering Rule</h1>
+		<br style="clear:both">
+		<div class="pBoxCont">	
+		<div class="inlineDiv2">
+		<label id="lPort_pw">Description:</label>
+		<input name="mf_desc" id="mf_desc" type="text" maxLength="32" style="width:55%;text-align:center;margin-left:-15px">
+		</div>
+		<div class="inlineDiv2">
+		<label id="lIP_pw">MAC Address:</label>
+		<input type="text" id="mf_macAddr" style="width:55%;text-align:center;margin-left:-15px" maxlength="17">		
+		</div>
+		<label id="lCustomFWError" class="lable13" style="display: none"></label>	
+		<div class="mboxButton" align="center">
+		<input id="btnOk" value="OK" onclick="btnOKClicked()" type="button">
+		<input id="btnCancel" value="Cancel" onclick="btnCancelClicked()" type="button" style="margin-left:8px">
+		</div>		
+		</div>	
+		<br style="clear:both">		
+	</div>
+</div>		  
+</body>
+</html>

@@ -1,0 +1,22 @@
+
+DUMP_TO_KMSG=/dev/kmsg
+
+## ------------------------------------------------------------
+##  Set the parameters for Wi-Fi performance
+## ------------------------------------------------------------
+action=$1
+echo "fx_performance:: action=${action}"						> $DUMP_TO_KMSG
+
+if [ "${action}" == "1" ]; then
+
+	echo "fx_performance:: action for Wi-Fi throughput"			> $DUMP_TO_KMSG
+
+else
+
+	echo "fx_performance:: action for power saving"				> $DUMP_TO_KMSG
+
+fi
+
+
+
+

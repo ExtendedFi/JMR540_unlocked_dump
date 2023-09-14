@@ -1,0 +1,796 @@
+
+DUMP_TO_KMSG=/dev/kmsg
+
+## ------------------------------------------------------------
+## Read the module parameter
+## ------------------------------------------------------------
+action=$1
+devmode=$2
+# foxconn jay add to support mifi4 mac filter
+model=$3
+
+
+## ------------------------------------------------------------
+## Check project type
+## ------------------------------------------------------------
+# foxconn jay add to support the macfilter for mifi4
+isMIFI4=0
+if [ "${model}" = "mifi4" ]; then	
+	isMIFI4=1	
+fi
+echo "fx_ap:: isMIFI4 = ${isMIFI4}"									> $DUMP_TO_KMSG
+# foxconn jay add end
+
+# foxconn Wayne add to support the DTAC 2016/06/24
+isDTAC=0
+if [ "${model}" = "DTAC" ]; then	
+	isDTAC=1	
+fi
+# foxconn Wayne END
+
+if [ "${action}" == "config" ]; then
+
+	echo "------------------------------------------------------"	> $DUMP_TO_KMSG
+	echo "fx_ap:: start AP configuration"							> $DUMP_TO_KMSG
+	echo "------------------------------------------------------"	> $DUMP_TO_KMSG
+
+	## ------------------------------------------------------
+	## Setup hostapd.deny file(MAC filter)
+	## ------------------------------------------------------
+	# foxconn jay add to support the macfilter for mifi4	
+	MACFILTER_MODE=`cfg -v MACFILTER_MODE`
+	if [ "${isMIFI4}" = "1" ]; then		
+		if [ "${MACFILTER_MODE}" = "1" ]; then	
+			HOSTAPD_MAC_FILE=/tmp/hostapd.accept
+		else
+			HOSTAPD_MAC_FILE=/tmp/hostapd.deny
+		fi
+	 else
+	    HOSTAPD_MAC_FILE=/tmp/hostapd.accept		
+	fi
+	echo "fx_ap:: HOSTAPD_MAC_FILE = ${HOSTAPD_MAC_FILE}"		> $DUMP_TO_KMSG
+	# foxconn jay add end
+	
+	if [ -f ${HOSTAPD_MAC_FILE} ]; then
+		rm ${HOSTAPD_MAC_FILE}
+	fi
+	
+	MACFILTER_ENABLE=`cfg -v MACFILTER_ENABLE`
+	echo "fx_ap:: MACFILTER_ENABLE = ${MACFILTER_ENABLE}"											> $DUMP_TO_KMSG
+	if [ "${MACFILTER_ENABLE}" = "1" ]; then	
+		number=1
+		while [[ $number -le 16 ]]; do
+			wlan_paed_acl_address=`cfg -v wlan_paed_acl_address_$number`
+			if [ "${wlan_paed_acl_address}" != "" ]; then				
+				if [ "${isMIFI4}" = "1" ]; then
+				wlan_paed_acl_address_enabled=0				 
+				if [ ${number} -ge 10 ]; then				    
+					wlan_paed_acl_address_enabled=`cfg -v wlan_paed_acl_address_${number}_enable`					
+				else
+					wlan_paed_acl_address_enabled=`cfg -v wlan_paed_acl_address_${number}_enabled`
+				fi						
+				if [ "${wlan_paed_acl_address_enabled}" = "1" ]; then
+					if [ "${MACFILTER_MODE}" = "1" ]; then	
+					echo "fx_ap:: add ${wlan_paed_acl_address} to hostapd.accept"			> $DUMP_TO_KMSG
+					else
+					echo "fx_ap:: add ${wlan_paed_acl_address} to hostapd.deny"				> $DUMP_TO_KMSG
+					fi
+					echo -e "${wlan_paed_acl_address}"										>> $HOSTAPD_MAC_FILE
+		fi
+				else
+					echo "fx_ap:: add ${wlan_paed_acl_address} to hostapd.accept"			> $DUMP_TO_KMSG
+					echo -e "${wlan_paed_acl_address}"										>> $HOSTAPD_MAC_FILE
+		fi
+		fi
+			number=$(( $number + 1 ))
+		done
+		# foxconn 2016/04/19 jay add to avoid hostapd.conf failure
+		if [ ! -f ${HOSTAPD_MAC_FILE} ]; then
+			echo -e ""																			>> $HOSTAPD_MAC_FILE
+		fi
+		# foxconn 2016/04/19 jay add end
+	fi
+
+	## ------------------------------------------------------------
+	## Bring in the default environmental variables - settings
+	## ------------------------------------------------------------
+	ACCESS_AP_IFACE=wlan0
+	AP_SSID=`cfg -v AP_SSID`
+	echo "fx_ap:: AP_SSID=${AP_SSID}" > $DUMP_TO_KMSG
+	AP_SSID_2=`cfg -v AP_SSID_2`
+	echo "fx_ap:: AP_SSID_2=${AP_SSID_2}" > $DUMP_TO_KMSG
+
+	if [ "${AP_SSID}" == "" ]; then
+		echo "fx_ap:: AP_SSID is empty , generate SSID by MAC address" > $DUMP_TO_KMSG
+		MAC_STR=`ifconfig ${ACCESS_AP_IFACE} | grep ${ACCESS_AP_IFACE} | cut -c 39-56`
+		echo "fx_ap:: MAC_STR=${MAC_STR}" > $DUMP_TO_KMSG
+		B1=`echo $MAC_STR | cut -f 1 -d ':'`
+		B2=`echo $MAC_STR | cut -f 2 -d ':'`
+		B3=`echo $MAC_STR | cut -f 3 -d ':'`
+		B4=`echo $MAC_STR | cut -f 4 -d ':'`
+		B5=`echo $MAC_STR | cut -f 5 -d ':'`
+		B6=`echo $MAC_STR | cut -f 6 -d ':'`
+		SSID_TAIL_STR=$B4$B5$B6
+		# foxconn jay sync the defualt for mifi4
+		if [ "${isMIFI4}" = "1" ]; then
+		ASSIGN_SSID="JioFi3_$SSID_TAIL_STR"
+		cfg -a AP_SSID=$ASSIGN_SSID
+		ASSIGN_SSID="JioFi3-2_$SSID_TAIL_STR"
+		cfg -a AP_SSID_2=$ASSIGN_SSID
+		# foxconn Wayne for DTAC SSID 2016/06/24
+		else if [ "${isDTAC}" = "1" ]; then
+		ASSIGN_SSID="Super4GWiFi"
+		cfg -a AP_SSID=$ASSIGN_SSID
+		ASSIGN_SSID="Super4GWiFi-2"
+		cfg -a AP_SSID_2=$ASSIGN_SSID
+		#End of DTAC SSID modify
+		else
+		ASSIGN_SSID="MHS-Generic_$SSID_TAIL_STR"
+		cfg -a AP_SSID=$ASSIGN_SSID
+		ASSIGN_SSID="MHS-Generic-2_$SSID_TAIL_STR"
+		cfg -a AP_SSID_2=$ASSIGN_SSID
+		fi
+		fi
+		cfg -c
+
+		AP_SSID=`cfg -v AP_SSID`
+		echo "fx_ap:: AP_SSID=${AP_SSID}" > $DUMP_TO_KMSG
+		AP_SSID_2=`cfg -v AP_SSID_2`
+		echo "fx_ap:: AP_SSID_2=${AP_SSID_2}" > $DUMP_TO_KMSG
+	fi
+
+	AP_HIDE=`cfg -v AP_HIDE`
+	echo "fx_ap:: AP_HIDE=${AP_HIDE}" > $DUMP_TO_KMSG
+	AP_HIDE_2=`cfg -v AP_HIDE_2`
+	echo "fx_ap:: AP_HIDE_2=${AP_HIDE_2}" > $DUMP_TO_KMSG
+
+	AP_CHMODE=`cfg -v AP_CHMODE`
+	echo "fx_ap:: AP_CHMODE=${AP_CHMODE}" > $DUMP_TO_KMSG
+	AP_CHMODE_2=`cfg -v AP_CHMODE_2`
+	echo "fx_ap:: AP_CHMODE_2=${AP_CHMODE_2}" > $DUMP_TO_KMSG
+
+	AP_PRIMARY_CH=`cfg -v AP_PRIMARY_CH`
+	echo "fx_ap:: AP_PRIMARY_CH=${AP_PRIMARY_CH}" > $DUMP_TO_KMSG
+	AP_PRIMARY_CH_2=`cfg -v AP_PRIMARY_CH_2`
+	echo "fx_ap:: AP_PRIMARY_CH_2=${AP_PRIMARY_CH_2}" > $DUMP_TO_KMSG
+
+	AP_PRIMARY_5G_CH=`cfg -v AP_PRIMARY_5G_CH`
+	echo "fx_ap:: AP_PRIMARY_5G_CH=${AP_PRIMARY_5G_CH}" > $DUMP_TO_KMSG
+	AP_PRIMARY_5G_CH_2=`cfg -v AP_PRIMARY_5G_CH_2`
+	echo "fx_ap:: AP_PRIMARY_5G_CH_2=${AP_PRIMARY_5G_CH_2}" > $DUMP_TO_KMSG
+
+	AP_80211AC=`cfg -v AP_80211AC`
+	echo "fx_ap:: AP_80211AC=${AP_80211AC}" > $DUMP_TO_KMSG
+	AP_80211AC_2=`cfg -v AP_80211AC_2`
+	echo "fx_ap:: AP_80211AC_2=${AP_80211AC_2}" > $DUMP_TO_KMSG
+
+	AP_SECMODE=`cfg -v AP_SECMODE`
+	AP_CYPHER=`cfg -v AP_CYPHER`
+
+# Foxconn add, Ignacs Wu, 2016/03/31 
+	if [ "${isMIFI4}" = "1" ]; then
+		KEYPASSPHRASE=`cfg -v CWMPAP1SECKEYPASSPHRASE`
+		PSK_KEY=`cfg -v PSK_KEY`
+	else
+		CWMP_PSK_KEY=`cfg -v CWMP_PSK_KEY`
+		PSK_KEY=`cfg -v PSK_KEY`
+		KEY_IDX=`cfg -v CWMP_WIFI_KEYIDX`
+	fi
+
+# Foxconn add, Ignacs Wu, 2016/05/03 
+	AP_WPS_PIN=`cfg -v WPS_STATION_PIN`
+	echo "fx_ap:: AP_WPS_PIN = ${AP_WPS_PIN}"					> $DUMP_TO_KMSG
+
+	AP_SECMODE_2=`cfg -v AP_SECMODE_2`
+	AP_CYPHER_2=`cfg -v AP_CYPHER_2`
+	PSK_KEY_2=`cfg -v PSK_KEY_2`
+
+	AP_PRIMARY_KEY_0=`cfg -v AP_PRIMARY_KEY_0`
+	WEP_KEYTYPE_1=`cfg -v WEP_KEYTYPE_1`
+	WEP_RADIO_NUM0_KEY_1=`cfg -v WEP_RADIO_NUM0_KEY_1`
+	WEP_RADIO_NUM0_KEY_2=`cfg -v WEP_RADIO_NUM0_KEY_2`
+	WEP_RADIO_NUM0_KEY_3=`cfg -v WEP_RADIO_NUM0_KEY_3`
+	WEP_RADIO_NUM0_KEY_4=`cfg -v WEP_RADIO_NUM0_KEY_4`
+
+	AP_PRIMARY_KEY_1=`cfg -v AP_PRIMARY_KEY_1`
+	WEP_KEYTYPE_2=`cfg -v WEP_KEYTYPE_2`
+	WEP_RADIO_NUM1_KEY_1=`cfg -v WEP_RADIO_NUM1_KEY_1`
+	WEP_RADIO_NUM1_KEY_2=`cfg -v WEP_RADIO_NUM1_KEY_2`
+	WEP_RADIO_NUM1_KEY_3=`cfg -v WEP_RADIO_NUM1_KEY_3`
+	WEP_RADIO_NUM1_KEY_4=`cfg -v WEP_RADIO_NUM1_KEY_4`
+
+	## ------------------------------------------------------------
+	## Setup hostapd.conf
+	## ------------------------------------------------------------
+	HOSTAPD_FILE=/tmp/hostapd.conf
+	if [ -f $HOSTAPD_FILE ]; then
+		rm $HOSTAPD_FILE
+	fi
+
+	HOSTAPD_FILE_2=/tmp/hostapd_2.conf
+	if [ -f $HOSTAPD_FILE_2 ]; then
+		rm $HOSTAPD_FILE_2
+	fi
+
+	echo -e "##### hostapd configuration file #####"				>> $HOSTAPD_FILE
+	if [ "${devmode}" == "sta,ap" ]; then
+		echo -e "interface=wlan1"									>> $HOSTAPD_FILE
+	else
+		echo -e "interface=wlan0"									>> $HOSTAPD_FILE
+	fi
+	echo -e "driver=nl80211"										>> $HOSTAPD_FILE
+	echo -e "#logger_syslog=-1"										>> $HOSTAPD_FILE
+	echo -e "#logger_syslog_level=2"								>> $HOSTAPD_FILE
+	echo -e "#logger_stdout=-1"										>> $HOSTAPD_FILE
+	echo -e "#logger_stdout_level=2"								>> $HOSTAPD_FILE
+	echo -e "ctrl_interface=/var/run/hostapd"						>> $HOSTAPD_FILE
+	echo -e "ctrl_interface_group=0"								>> $HOSTAPD_FILE
+	echo -e ""														>> $HOSTAPD_FILE
+	echo -e "##### IEEE 802.11 related configuration #####"			>> $HOSTAPD_FILE
+	echo -e "ssid=${AP_SSID}"										>> $HOSTAPD_FILE
+	
+	#Wayne chang, modify for MIFI4 country set to India, 2016/05/09
+       if [ "${isMIFI4}" = "1" ]; then	
+	echo -e "country_code=IN"										>> $HOSTAPD_FILE
+        #Wayne chang, modify for DTAC country set to Thailand, 2016/07/06
+       else if [ "${isDTAC}" = "1" ]; then	
+        echo -e "country_code=TH"										>> $HOSTAPD_FILE
+	   else
+	echo -e "country_code=US"										>> $HOSTAPD_FILE
+	   fi
+	   fi
+	#Modify end
+	if [ "${AP_CHMODE}" == "a" ]; then
+		echo -e "hw_mode=a"											>> $HOSTAPD_FILE
+		if [ "${AP_80211AC}" == "1" ]; then
+			AP_ENABLE_80211AC=1
+		else
+			AP_ENABLE_80211AC=0
+		fi
+	else if [ "${AP_CHMODE}" == "b" ]; then
+		echo -e "hw_mode=b"											>> $HOSTAPD_FILE
+	else if [ "${AP_CHMODE}" == "g" ]; then
+		echo -e "hw_mode=g"											>> $HOSTAPD_FILE
+	else if [ "${AP_CHMODE}" == "n" ]; then
+		echo -e "hw_mode=g"											>> $HOSTAPD_FILE
+	else
+		echo -e "hw_mode=g"											>> $HOSTAPD_FILE
+	fi
+	fi
+	fi
+	fi
+	if [ "${AP_CHMODE}" == "a" ]; then
+		if [ "${AP_PRIMARY_5G_CH}" == "-1" -o "${AP_PRIMARY_5G_CH}" == "0" -o "${AP_ENABLE_80211AC}" == "1" ]; then
+			echo -e "channel=0"										>> $HOSTAPD_FILE
+			echo -e "chanlist=149-165"								>> $HOSTAPD_FILE
+		else
+			echo -e "channel=${AP_PRIMARY_5G_CH}"					>> $HOSTAPD_FILE
+		fi
+	else
+		if [ "${AP_PRIMARY_CH}" == "-1" -o "${AP_PRIMARY_CH}" == "0" ]; then
+		
+		#Min-chang, modify for MIFI4 ACS set to channel 5-11, 09-20-2016
+		  if [ "${isMIFI4}" = "1" ]; then	
+		  	echo -e "channel=0"										>> $HOSTAPD_FILE
+			echo -e "chanlist=5-11"								>> $HOSTAPD_FILE
+		  #Wayne chang, add for DTAC ACS set to channel 4-13, 2016/07/06
+                  else if [ "${isDTAC}" = "1" ]; then	
+		  	echo -e "channel=0"										>> $HOSTAPD_FILE
+			echo -e "chanlist=4-13"								>> $HOSTAPD_FILE	
+		  else
+			echo -e "channel=0"										>> $HOSTAPD_FILE
+		  fi
+		  fi
+		  #modify end
+		  
+		else
+			echo -e "channel=${AP_PRIMARY_CH}"						>> $HOSTAPD_FILE
+		fi
+	fi
+	echo -e "beacon_int=100"										>> $HOSTAPD_FILE
+# fixed r1012 // Foxconn add, Ignacs Wu, 2016/04/12 
+	echo -e "dtim_period=2"											>> $HOSTAPD_FILE
+	# foxconn 2016/03/22 jay modify to support macfilter for mifi4										
+	if [ "${MACFILTER_ENABLE}" = "1" ]; then
+		if [ "${isMIFI4}" = "1" ]; then			
+			if [ "${MACFILTER_MODE}" = "1" ]; then
+				echo -e "accept_mac_file=${HOSTAPD_MAC_FILE}"			>> $HOSTAPD_FILE		
+				echo -e "macaddr_acl=1"									>> $HOSTAPD_FILE	
+			else
+				echo -e "deny_mac_file=${HOSTAPD_MAC_FILE}"				>> $HOSTAPD_FILE		
+				echo -e "macaddr_acl=0"									>> $HOSTAPD_FILE	
+			fi			
+		else
+		echo -e "macaddr_acl=1"										>> $HOSTAPD_FILE
+			echo -e "accept_mac_file=${HOSTAPD_MAC_FILE}"			>> $HOSTAPD_FILE
+		fi
+	else
+		echo -e "macaddr_acl=0"										>> $HOSTAPD_FILE
+	fi
+
+	if [ "${AP_HIDE}" == "1" ]; then
+		echo -e "ignore_broadcast_ssid=1"							>> $HOSTAPD_FILE
+	else if [ "${AP_ENABLE_80211AC}" == "1" ]; then
+		echo -e "#ignore_broadcast_ssid=0"							>> $HOSTAPD_FILE
+	else
+		echo -e "ignore_broadcast_ssid=0"							>> $HOSTAPD_FILE
+	fi
+	fi
+
+	# echo -e "wmm_enabled=1"											>> $HOSTAPD_FILE
+	# // Foxconn add, Ignacs Wu, 2016/04/07 
+	WMM_ENABLED=`cfg -v CWMPAP1WMMENABLE`
+	echo "fx_ap:: WMM_ENABLED=${WMM_ENABLED}" > $DUMP_TO_KMSG
+
+	if [ "${AP_ENABLE_80211AC}" == "1" ]; then
+		echo -e "#wmm_enabled=1"									>> $HOSTAPD_FILE
+	else
+		if [ "${WMM_ENABLED}" == "1" ]; then
+			echo -e "wmm_enabled=1"										>> $HOSTAPD_FILE
+		else
+			echo -e "wmm_enabled=0"										>> $HOSTAPD_FILE
+		fi
+	fi
+
+	# Foxconn add, Ignacs Wu, 2016/04/07 
+	UAPSD_ENABLED=`cfg -v CWMPAP1UAPSDENABLE`
+	echo "fx_ap:: UAPSD_ENABLED=${UAPSD_ENABLED}" > $DUMP_TO_KMSG
+	if [ "${UAPSD_ENABLED}" == "1" ]; then
+		echo -e "uapsd_advertisement_enabled=1"										>> $HOSTAPD_FILE
+	else
+		echo -e "uapsd_advertisement_enabled=0"										>> $HOSTAPD_FILE
+	fi
+
+	echo -e "wmm_ac_bk_cwmin=4"										>> $HOSTAPD_FILE
+	echo -e "wmm_ac_bk_cwmax=10"									>> $HOSTAPD_FILE
+	echo -e "wmm_ac_bk_aifs=7"										>> $HOSTAPD_FILE
+	echo -e "wmm_ac_bk_txop_limit=0"								>> $HOSTAPD_FILE
+	echo -e "wmm_ac_bk_acm=0"										>> $HOSTAPD_FILE
+	echo -e "wmm_ac_be_aifs=3"										>> $HOSTAPD_FILE
+	echo -e "wmm_ac_be_cwmin=4"										>> $HOSTAPD_FILE
+	echo -e "wmm_ac_be_cwmax=10"									>> $HOSTAPD_FILE
+	echo -e "wmm_ac_be_txop_limit=0"								>> $HOSTAPD_FILE
+	echo -e "wmm_ac_be_acm=0"										>> $HOSTAPD_FILE
+	echo -e "wmm_ac_vi_aifs=2"										>> $HOSTAPD_FILE
+	echo -e "wmm_ac_vi_cwmin=3"										>> $HOSTAPD_FILE
+	echo -e "wmm_ac_vi_cwmax=4"										>> $HOSTAPD_FILE
+	echo -e "wmm_ac_vi_txop_limit=94"								>> $HOSTAPD_FILE
+	echo -e "wmm_ac_vi_acm=0"										>> $HOSTAPD_FILE
+	echo -e "wmm_ac_vo_aifs=2"										>> $HOSTAPD_FILE
+	echo -e "wmm_ac_vo_cwmin=2"										>> $HOSTAPD_FILE
+	echo -e "wmm_ac_vo_cwmax=3"										>> $HOSTAPD_FILE
+	echo -e "wmm_ac_vo_txop_limit=47"								>> $HOSTAPD_FILE
+	echo -e "wmm_ac_vo_acm=0"										>> $HOSTAPD_FILE
+	echo -e ""														>> $HOSTAPD_FILE
+	echo -e "##### IEEE 802.11n related configuration #####"		>> $HOSTAPD_FILE
+	if [ "${AP_CHMODE}" == "a" ]; then
+		echo -e "ieee80211n=1"										>> $HOSTAPD_FILE
+	else if [ "${AP_CHMODE}" == "b" ]; then
+		echo -e "ieee80211n=0"										>> $HOSTAPD_FILE
+	else if [ "${AP_CHMODE}" == "g" ]; then
+		echo -e "ieee80211n=0"										>> $HOSTAPD_FILE
+	else if [ "${AP_CHMODE}" == "n" ]; then
+		echo -e "ieee80211n=1"										>> $HOSTAPD_FILE
+	else
+		echo -e "ieee80211n=1"										>> $HOSTAPD_FILE
+	fi
+	fi
+	fi
+	fi
+	if [ "${AP_CHMODE}" == "a" ]; then
+		### HT40 for 5G channel #########
+		if [ "${AP_PRIMARY_5G_CH}" == "-1" -o "${AP_PRIMARY_5G_CH}" == "0" ]; then
+			echo -e "ht_capab=[HT40+][SHORT-GI-20][SHORT-GI-40]"			>> $HOSTAPD_FILE
+		else
+			### HT40 for 5G fixed channel #########
+			### Channel 36 (5180 MHz) HT40+
+			### Channel 40 (5200 MHz) HT40-
+			### Channel 44 (5220 MHz) HT40+
+			### Channel 48 (5240 MHz) HT40-
+			### Channel 52 (5260 MHz) HT40+
+			### Channel 56 (5280 MHz) HT40-
+			### Channel 60 (5300 MHz) HT40+
+			### Channel 64 (5320 MHz) HT40-
+			#######################################
+			if [ "${AP_PRIMARY_5G_CH}" == "36" ]; then
+				echo -e "ht_capab=[HT40+][SHORT-GI-20][SHORT-GI-40]"		>> $HOSTAPD_FILE
+			else if [ "${AP_PRIMARY_5G_CH}" == "40" ]; then
+				echo -e "ht_capab=[HT40-][SHORT-GI-20][SHORT-GI-40]"		>> $HOSTAPD_FILE
+			else if [ "${AP_PRIMARY_5G_CH}" == "44" ]; then
+				echo -e "ht_capab=[HT40+][SHORT-GI-20][SHORT-GI-40]"		>> $HOSTAPD_FILE
+			else if [ "${AP_PRIMARY_5G_CH}" == "48" ]; then
+				echo -e "ht_capab=[HT40-][SHORT-GI-20][SHORT-GI-40]"		>> $HOSTAPD_FILE
+			else if [ "${AP_PRIMARY_5G_CH}" == "52" ]; then
+				echo -e "ht_capab=[HT40+][SHORT-GI-20][SHORT-GI-40]"		>> $HOSTAPD_FILE
+			else if [ "${AP_PRIMARY_5G_CH}" == "56" ]; then
+				echo -e "ht_capab=[HT40-][SHORT-GI-20][SHORT-GI-40]"		>> $HOSTAPD_FILE
+			else if [ "${AP_PRIMARY_5G_CH}" == "60" ]; then
+				echo -e "ht_capab=[HT40+][SHORT-GI-20][SHORT-GI-40]"		>> $HOSTAPD_FILE
+			else if [ "${AP_PRIMARY_5G_CH}" == "64" ]; then
+				echo -e "ht_capab=[HT40-][SHORT-GI-20][SHORT-GI-40]"		>> $HOSTAPD_FILE
+			### HT40 for 5G fixed channel #########
+			### Channel 100 (5500 MHz) HT40+
+			### Channel 104 (5520 MHz) HT40-
+			### Channel 108 (5540 MHz) HT40+
+			### Channel 112 (5560 MHz) HT40-
+			### Channel 116 (5580 MHz) HT40+
+			### Channel 120 (5600 MHz) HT40-
+			### Channel 124 (5620 MHz) HT40+
+			### Channel 128 (5640 MHz) HT40-
+			### Channel 132 (5660 MHz) HT40+
+			### Channel 136 (5680 MHz) HT40-
+			### Channel 140 (5700 MHz) HT20
+			#######################################
+			else if [ "${AP_PRIMARY_5G_CH}" == "100" ]; then
+				echo -e "ht_capab=[HT40+][SHORT-GI-20][SHORT-GI-40]"		>> $HOSTAPD_FILE
+			else if [ "${AP_PRIMARY_5G_CH}" == "104" ]; then
+				echo -e "ht_capab=[HT40-][SHORT-GI-20][SHORT-GI-40]"		>> $HOSTAPD_FILE
+			else if [ "${AP_PRIMARY_5G_CH}" == "108" ]; then
+				echo -e "ht_capab=[HT40+][SHORT-GI-20][SHORT-GI-40]"		>> $HOSTAPD_FILE
+			else if [ "${AP_PRIMARY_5G_CH}" == "112" ]; then
+				echo -e "ht_capab=[HT40-][SHORT-GI-20][SHORT-GI-40]"		>> $HOSTAPD_FILE
+			else if [ "${AP_PRIMARY_5G_CH}" == "116" ]; then
+				echo -e "ht_capab=[HT40+][SHORT-GI-20][SHORT-GI-40]"		>> $HOSTAPD_FILE
+			else if [ "${AP_PRIMARY_5G_CH}" == "120" ]; then
+				echo -e "ht_capab=[HT40-][SHORT-GI-20][SHORT-GI-40]"		>> $HOSTAPD_FILE
+			else if [ "${AP_PRIMARY_5G_CH}" == "124" ]; then
+				echo -e "ht_capab=[HT40+][SHORT-GI-20][SHORT-GI-40]"		>> $HOSTAPD_FILE
+			else if [ "${AP_PRIMARY_5G_CH}" == "128" ]; then
+				echo -e "ht_capab=[HT40-][SHORT-GI-20][SHORT-GI-40]"		>> $HOSTAPD_FILE
+			else if [ "${AP_PRIMARY_5G_CH}" == "132" ]; then
+				echo -e "ht_capab=[HT40+][SHORT-GI-20][SHORT-GI-40]"		>> $HOSTAPD_FILE
+			else if [ "${AP_PRIMARY_5G_CH}" == "136" ]; then
+				echo -e "ht_capab=[HT40-][SHORT-GI-20][SHORT-GI-40]"		>> $HOSTAPD_FILE
+			else if [ "${AP_PRIMARY_5G_CH}" == "140" ]; then
+				echo -e "ht_capab=[SHORT-GI-20]"							>> $HOSTAPD_FILE
+			### HT40 for 5G fixed channel #########
+			### Channel 149 (5745 MHz) HT40+
+			### Channel 153 (5765 MHz) HT40-
+			### Channel 157 (5785 MHz) HT40+
+			### Channel 161 (5805 MHz) HT40-
+			### Channel 165 (5825 MHz) HT20
+			#######################################
+			else if [ "${AP_PRIMARY_5G_CH}" == "149" ]; then
+				echo -e "ht_capab=[HT40+][SHORT-GI-20][SHORT-GI-40]"		>> $HOSTAPD_FILE
+			else if [ "${AP_PRIMARY_5G_CH}" == "153" ]; then
+				echo -e "ht_capab=[HT40-][SHORT-GI-20][SHORT-GI-40]"		>> $HOSTAPD_FILE
+			else if [ "${AP_PRIMARY_5G_CH}" == "157" ]; then
+				echo -e "ht_capab=[HT40+][SHORT-GI-20][SHORT-GI-40]"		>> $HOSTAPD_FILE
+			else if [ "${AP_PRIMARY_5G_CH}" == "161" ]; then
+				echo -e "ht_capab=[HT40-][SHORT-GI-20][SHORT-GI-40]"		>> $HOSTAPD_FILE
+			else if [ "${AP_PRIMARY_5G_CH}" == "165" ]; then
+			  echo -e "ht_capab=[SHORT-GI-20]"								>> $HOSTAPD_FILE
+			else
+				if [ "${AP_ENABLE_80211AC}" == "1" ]; then
+					echo -e "ht_capab=[HT40+]"								>> $HOSTAPD_FILE
+				else
+					echo -e "ht_capab=[HT40+][SHORT-GI-20][SHORT-GI-40]"	>> $HOSTAPD_FILE
+				fi
+			fi
+			fi
+			fi
+			fi
+			fi
+			fi
+			fi
+			fi
+			fi
+			fi
+			fi
+			fi
+			fi
+			fi
+			fi
+			fi
+			fi
+			fi
+			fi
+			fi
+			fi
+			fi
+			fi
+			fi
+		fi
+	else
+		### HT40 for 2.4G channel #########
+		if [ "${AP_PRIMARY_CH}" == "-1" -o "${AP_PRIMARY_CH}" == "0" ]; then
+			echo -e "ht_capab=[HT40+][SHORT-GI-20][SHORT-GI-40]"                 >> $HOSTAPD_FILE
+		else
+			### HT40 for 2.4G fixed channel #########
+			### Channel 1(2412 MHz) HT40+
+			### Channel 2(2417 MHz) HT40+
+			### Channel 3(2422 MHz) HT40+
+			### Channel 4(2427 MHz) HT40+
+			### Channel 5(2432 MHz) HT40+ | HT40-
+			### Channel 6(2437 MHz) HT40+ | HT40-
+			### Channel 7(2442 MHz) HT40+ | HT40-
+			### Channel 8(2447 MHz) HT40-
+			### Channel 9(2452 MHz) HT40-
+			### Channel 10(2457 MHz) HT40-
+			### Channel 11(2462 MHz) HT40-
+			#########################################
+			if [ "${AP_PRIMARY_CH}" == "1" -o "${AP_PRIMARY_CH}" == "2" -o "${AP_PRIMARY_CH}" == "3" -o "${AP_PRIMARY_CH}" == "4" ]; then
+				echo -e "ht_capab=[HT40+][SHORT-GI-20][SHORT-GI-40]"               >> $HOSTAPD_FILE
+			else if [ "${AP_PRIMARY_CH}" == "5" -o "${AP_PRIMARY_CH}" == "6" -o "${AP_PRIMARY_CH}" == "7" ]; then
+				echo -e "ht_capab=[HT40+][SHORT-GI-20][SHORT-GI-40]"               >> $HOSTAPD_FILE
+			else if [ "${AP_PRIMARY_CH}" == "8" -o "${AP_PRIMARY_CH}" == "9" -o "${AP_PRIMARY_CH}" == "10" -o "${AP_PRIMARY_CH}" == "11" ]; then
+				echo -e "ht_capab=[HT40-][SHORT-GI-20][SHORT-GI-40]"               >> $HOSTAPD_FILE
+			else
+				echo -e "ht_capab=[HT40-][SHORT-GI-20][SHORT-GI-40]"               >> $HOSTAPD_FILE
+			fi
+			fi
+			fi
+		fi
+	fi
+	echo -e "obss_interval=10"										>> $HOSTAPD_FILE
+	echo -e ""														>> $HOSTAPD_FILE
+	echo -e "##### IEEE 802.11ac related configuration #####"		>> $HOSTAPD_FILE
+	if [ "${AP_ENABLE_80211AC}" == "1" ]; then
+		echo -e "ieee80211ac=1"										>> $HOSTAPD_FILE
+		echo -e "vht_oper_chwidth=1"								>> $HOSTAPD_FILE
+		echo -e "chanlist=149"										>> $HOSTAPD_FILE
+	fi
+	echo -e ""									>> $HOSTAPD_FILE
+	echo "fx_ap::isMIFI4 = ${isMIFI4}" > $DUMP_TO_KMSG
+	# Foxconn 2016/04/12 jay implement wep
+	if [ "${isMIFI4}" = "1" ]; then
+		echo  "AP_SECMODE = ${AP_SECMODE}"	>> $DUMP_TO_KMSG
+		if [ "${AP_SECMODE}" == "No authentication" -o "${AP_SECMODE}" == "No Authentication" ]; then
+			echo -e "##### Security Disabled ############################"	>> $HOSTAPD_FILE
+			echo -e "##### Security Disabled ############################" >> $DUMP_TO_KMSG
+		elif [ "${AP_SECMODE}" == "WEP" ]; then
+			echo -e "##### WEP related configuration ############################"	>> $HOSTAPD_FILE
+			echo "##### WEP related configuration ############################"		>> $DUMP_TO_KMSG
+			echo  "AP_CYPHER = ${AP_CYPHER}"	>> $DUMP_TO_KMSG
+			if [ "${AP_CYPHER}" == "Share" ]; then
+				echo -e "auth_algs=2"												>> $HOSTAPD_FILE			
+			else
+				echo -e "auth_algs=1"												>> $HOSTAPD_FILE	
+			fi			
+			echo "AP_PRIMARY_KEY_0 = ${AP_PRIMARY_KEY_0}"									>> $DUMP_TO_KMSG
+			echo "WEP_KEYTYPE_1 = ${WEP_KEYTYPE_1}"											>> $DUMP_TO_KMSG
+			echo "WEP_RADIO_NUM0_KEY_1 = ${WEP_RADIO_NUM0_KEY_1}"							>> $DUMP_TO_KMSG
+			echo "WEP_KEYTYPE_1 = ${WEP_KEYTYPE_1}"										>> $DUMP_TO_KMSG
+			if [ "${AP_PRIMARY_KEY_0}" == "1" ]; then				
+				if [ "${WEP_KEYTYPE_1}" == "5 characters(WEP64)" -o "${WEP_KEYTYPE_1}" == "13 characters(WEP128)" ]; then
+					echo -e "wep_key0=\"${WEP_RADIO_NUM0_KEY_1}\""					>> $HOSTAPD_FILE
+				else
+					echo -e "wep_key0=${WEP_RADIO_NUM0_KEY_1}"						>> $HOSTAPD_FILE
+				fi
+				echo -e "wep_default_key=0"											>> $HOSTAPD_FILE
+			elif [ "${AP_PRIMARY_KEY_0}" == "2" ]; then
+				if [ "${WEP_KEYTYPE_1}" == "5 characters(WEP64)" -o "${WEP_KEYTYPE_1}" == "13 characters(WEP128)" ]; then
+					echo -e "wep_key1=\"${WEP_RADIO_NUM0_KEY_2}\""					>> $HOSTAPD_FILE
+				else
+					echo -e "wep_key1=${WEP_RADIO_NUM0_KEY_2}"						>> $HOSTAPD_FILE
+				fi
+				echo -e "wep_default_key=1"											>> $HOSTAPD_FILE
+			elif [ "${AP_PRIMARY_KEY_0}" == "3" ]; then
+				if [ "${WEP_KEYTYPE_1}" == "5 characters(WEP64)" -o "${WEP_KEYTYPE_1}" == "13 characters(WEP128)" ]; then
+					echo -e "wep_key2=\"${WEP_RADIO_NUM0_KEY_3}\""					>> $HOSTAPD_FILE
+				else
+					echo -e "wep_key2=${WEP_RADIO_NUM0_KEY_3}"						>> $HOSTAPD_FILE
+				fi
+				echo -e "wep_default_key=2"											>> $HOSTAPD_FILE
+			elif [ "${AP_PRIMARY_KEY_0}" == "4" ]; then
+				if [ "${WEP_KEYTYPE_1}" == "5 characters(WEP64)" -o "${WEP_KEYTYPE_1}" == "13 characters(WEP128)" ]; then
+					echo -e "wep_key3=\"${WEP_RADIO_NUM0_KEY_4}\""					>> $HOSTAPD_FILE
+				else
+					echo -e "wep_key3=${WEP_RADIO_NUM0_KEY_4}"						>> $HOSTAPD_FILE
+				fi
+				echo -e "wep_default_key=3"											>> $HOSTAPD_FILE
+			else
+				echo -e "wep_key0=1234567890"										>> $HOSTAPD_FILE
+				echo -e "wep_default_key=0"											>> $HOSTAPD_FILE
+			fi			
+		else
+			echo -e "##### WPA/IEEE 802.11i configuration #####"		>> $HOSTAPD_FILE
+			if [ "${AP_SECMODE}" == "WPA-PSK" ]; then
+				echo -e "wpa=1"											>> $HOSTAPD_FILE
+			elif [ "${AP_SECMODE}" == "WPA2-PSK" ]; then
+				echo -e "wpa=2"											>> $HOSTAPD_FILE
+			elif [ "${AP_SECMODE}" == "WPA-PSK/WPA2-PSK" ]; then
+				echo -e "wpa=3"											>> $HOSTAPD_FILE
+			fi	
+			# set PassPhrase as high priority  // Foxconn add, Ignacs Wu, 2016/04/08		
+                        # Foxconn 2016/07/15 jay fix the script error.
+			if [ ! -z "${KEYPASSPHRASE}" ] ; then 
+				echo -e "wpa_passphrase=${KEYPASSPHRASE}"				>> $HOSTAPD_FILE
+			else
+				if [ ! -z "${PSK_KEY}" ] ; then 
+					echo -e "wpa_psk=${PSK_KEY}"							>> $HOSTAPD_FILE
+				fi 
+			fi 
+			echo -e "wpa_key_mgmt=WPA-PSK"								>> $HOSTAPD_FILE
+			if [ "${AP_CYPHER}" == "AES" ]; then
+				echo -e "wpa_pairwise=CCMP"								>> $HOSTAPD_FILE
+			elif [ "${AP_CYPHER}" == "TKIP" ]; then
+				echo -e "wpa_pairwise=TKIP"								>> $HOSTAPD_FILE
+			elif [ "${AP_CYPHER}" == "AES/TKIP" ]; then
+				echo -e "wpa_pairwise=TKIP CCMP"						>> $HOSTAPD_FILE
+			fi
+	#		echo -e "wpa_group_rekey=600"								>> $HOSTAPD_FILE_2			
+		fi	
+	else
+		echo -e "##### Authentication and encryption ####################"				>> $HOSTAPD_FILE
+		if [ "${AP_SECMODE}" == "No authentication" -o "${AP_SECMODE}" == "No Authentication" ]; then
+			if [ "${AP_CYPHER}" == "WEP" ]; then
+				echo -e "##### WEP related configuration ############################"	>> $HOSTAPD_FILE
+				echo -e "auth_algs=1"													>> $HOSTAPD_FILE
+				if [ "${AP_PRIMARY_KEY_0}" == "1" ]; then
+					if [ "${WEP_KEYTYPE_1}" == "5 characters(WEP64)" -o "${WEP_KEYTYPE_1}" == "13 characters(WEP128)" ]; then
+						echo -e "wep_key0=\"${WEP_RADIO_NUM0_KEY_1}\""					>> $HOSTAPD_FILE
+					else
+						echo -e "wep_key0=${WEP_RADIO_NUM0_KEY_1}"						>> $HOSTAPD_FILE
+					fi
+					echo -e "wep_default_key=0"											>> $HOSTAPD_FILE
+				else if [ "${AP_PRIMARY_KEY_0}" == "2" ]; then
+					if [ "${WEP_KEYTYPE_1}" == "5 characters(WEP64)" -o "${WEP_KEYTYPE_1}" == "13 characters(WEP128)" ]; then
+						echo -e "wep_key1=\"${WEP_RADIO_NUM0_KEY_2}\""					>> $HOSTAPD_FILE
+					else
+						echo -e "wep_key1=${WEP_RADIO_NUM0_KEY_2}"						>> $HOSTAPD_FILE
+					fi
+					echo -e "wep_default_key=1"											>> $HOSTAPD_FILE
+				else if [ "${AP_PRIMARY_KEY_0}" == "3" ]; then
+					if [ "${WEP_KEYTYPE_1}" == "5 characters(WEP64)" -o "${WEP_KEYTYPE_1}" == "13 characters(WEP128)" ]; then
+						echo -e "wep_key2=\"${WEP_RADIO_NUM0_KEY_3}\""					>> $HOSTAPD_FILE
+					else
+						echo -e "wep_key2=${WEP_RADIO_NUM0_KEY_3}"						>> $HOSTAPD_FILE
+					fi
+					echo -e "wep_default_key=2"											>> $HOSTAPD_FILE
+				else if [ "${AP_PRIMARY_KEY_0}" == "4" ]; then
+					if [ "${WEP_KEYTYPE_1}" == "5 characters(WEP64)" -o "${WEP_KEYTYPE_1}" == "13 characters(WEP128)" ]; then
+						echo -e "wep_key3=\"${WEP_RADIO_NUM0_KEY_4}\""					>> $HOSTAPD_FILE
+					else
+						echo -e "wep_key3=${WEP_RADIO_NUM0_KEY_4}"						>> $HOSTAPD_FILE
+					fi
+					echo -e "wep_default_key=3"											>> $HOSTAPD_FILE
+				else
+					echo -e "wep_key0=1234567890"										>> $HOSTAPD_FILE
+					echo -e "wep_default_key=0"											>> $HOSTAPD_FILE
+				fi
+				fi
+				fi
+				fi
+			fi
+		else
+			echo -e "##### WPA/IEEE 802.11i configuration #####"		>> $HOSTAPD_FILE
+			if [ "${AP_SECMODE}" == "WPA-PSK" ]; then
+				echo -e "wpa=1"											>> $HOSTAPD_FILE
+			elif [ "${AP_SECMODE}" == "WPA2-PSK" ]; then
+				echo -e "wpa=2"											>> $HOSTAPD_FILE
+			elif [ "${AP_SECMODE}" == "WPA-PSK/WPA2-PSK" ]; then
+				echo -e "wpa=3"											>> $HOSTAPD_FILE
+			fi
+
+	# // Foxconn modify, Ignacs Wu, 2016/03/31 
+			if [ "2" = ${KEY_IDX} ] ; then  # PSK
+				echo -e "wpa_psk=${CWMP_PSK_KEY}"						>> $HOSTAPD_FILE
+			else # PASSPHRASE, default
+				echo -e "wpa_passphrase=${PSK_KEY}"						>> $HOSTAPD_FILE
+			fi 
+
+			echo -e "wpa_key_mgmt=WPA-PSK"								>> $HOSTAPD_FILE
+			if [ "${AP_CYPHER}" == "AES" ]; then
+				echo -e "wpa_pairwise=CCMP"								>> $HOSTAPD_FILE
+			elif [ "${AP_CYPHER}" == "TKIP" ]; then
+				echo -e "wpa_pairwise=TKIP"								>> $HOSTAPD_FILE
+			elif [ "${AP_CYPHER}" == "AES/TKIP" ]; then
+				echo -e "wpa_pairwise=TKIP CCMP"						>> $HOSTAPD_FILE
+			fi
+	#		echo -e "wpa_group_rekey=600"								>> $HOSTAPD_FILE_2
+		fi
+	fi
+	echo -e ""														>> $HOSTAPD_FILE
+	echo -e "##### Wi-Fi Protected Setup (WPS) #####"				>> $HOSTAPD_FILE
+	echo -e "wps_state=2"											>> $HOSTAPD_FILE
+
+	echo -e "uuid=12345678-9abc-def0-1234-56789abcdef0"				>> $HOSTAPD_FILE
+	echo -e "device_name=Wireless AP"								>> $HOSTAPD_FILE
+	echo -e "manufacturer=Company"									>> $HOSTAPD_FILE
+	echo -e "model_name=WAP"										>> $HOSTAPD_FILE
+	echo -e "model_number=123"										>> $HOSTAPD_FILE
+	echo -e "serial_number=12345"									>> $HOSTAPD_FILE
+	echo -e "device_type=6-0050F204-1"								>> $HOSTAPD_FILE
+	echo -e "os_version=01020300"									>> $HOSTAPD_FILE
+	echo -e "pbc_in_m1=1"											>> $HOSTAPD_FILE
+	#FXCN20170206 josh modify start: If not set, hostapd will not allow external WPS Registrars to control the AP
+	#if [ ! -z "${AP_WPS_PIN}" ]; then
+		#echo -e "ap_pin=${AP_WPS_PIN}"								>> $HOSTAPD_FILE
+	#else
+		#echo -e "ap_pin=12345670"									>> $HOSTAPD_FILE
+	#fi
+	#FXCN20170206 josh modify end
+	echo -e "eap_server=1"											>> $HOSTAPD_FILE
+	echo -e "ap_setup_locked=0"										>> $HOSTAPD_FILE
+	#FXCN20170206 josh modify start: Disable the "Config methods: Label, Display, Keypad" Information elements. Other clients cannot find it by "iw wlan0 scan" for WPS PIXIE attack 
+	#echo -e "config_methods=label display push_button keypad"		>> $HOSTAPD_FILE
+	echo -e "config_methods=push_button"		                    >> $HOSTAPD_FILE
+	#FXCN20170206 josh modify end
+	echo -e "wps_pin_requests=/var/run/hostapd_wps_pin_requests"	>> $HOSTAPD_FILE
+	echo -e ""														>> $HOSTAPD_FILE
+	echo -e "##### Hotspot 2.0 #####"								>> $HOSTAPD_FILE
+	echo -e ""														>> $HOSTAPD_FILE
+
+	if [ "${devmode}" == "ap,ap" ]; then
+		echo -e "##### hostapd configuration file #####"			>> $HOSTAPD_FILE_2
+		echo -e "interface=wlan1"									>> $HOSTAPD_FILE_2
+		echo -e "driver=nl80211"									>> $HOSTAPD_FILE_2
+		echo -e "logger_syslog=-1"									>> $HOSTAPD_FILE_2
+		echo -e "logger_syslog_level=2"								>> $HOSTAPD_FILE_2
+		echo -e "logger_stdout=-1"									>> $HOSTAPD_FILE_2
+		echo -e "logger_stdout_level=2"								>> $HOSTAPD_FILE_2
+		echo -e "ctrl_interface=/var/run/hostapd"					>> $HOSTAPD_FILE_2
+		echo -e "ctrl_interface_group=0"							>> $HOSTAPD_FILE_2
+		echo -e """													>> $HOSTAPD_FILE_2
+		echo -e "##### IEEE 802.11 related configuration #####"		>> $HOSTAPD_FILE_2
+		echo -e "ssid=MHS_Generic_5G"								>> $HOSTAPD_FILE_2
+		echo -e "country_code=US"									>> $HOSTAPD_FILE_2
+		echo -e "hw_mode=a"											>> $HOSTAPD_FILE_2
+		echo -e "channel=153"										>> $HOSTAPD_FILE_2
+		echo -e "beacon_int=100"									>> $HOSTAPD_FILE_2
+		echo -e "dtim_period=2"										>> $HOSTAPD_FILE_2
+		echo -e "macaddr_acl=0"										>> $HOSTAPD_FILE_2
+		echo -e "ignore_broadcast_ssid=0"							>> $HOSTAPD_FILE_2
+		echo -e "wmm_enabled=1"										>> $HOSTAPD_FILE_2
+		echo -e "wmm_ac_bk_cwmin=4"									>> $HOSTAPD_FILE_2
+		echo -e "wmm_ac_bk_cwmax=10"								>> $HOSTAPD_FILE_2
+		echo -e "wmm_ac_bk_aifs=7"									>> $HOSTAPD_FILE_2
+		echo -e "wmm_ac_bk_txop_limit=0"							>> $HOSTAPD_FILE_2
+		echo -e "wmm_ac_bk_acm=0"									>> $HOSTAPD_FILE_2
+		echo -e "wmm_ac_be_aifs=3"									>> $HOSTAPD_FILE_2
+		echo -e "wmm_ac_be_cwmin=4"									>> $HOSTAPD_FILE_2
+		echo -e "wmm_ac_be_cwmax=10"								>> $HOSTAPD_FILE_2
+		echo -e "wmm_ac_be_txop_limit=0"							>> $HOSTAPD_FILE_2
+		echo -e "wmm_ac_be_acm=0"									>> $HOSTAPD_FILE_2
+		echo -e "wmm_ac_vi_aifs=2"									>> $HOSTAPD_FILE_2
+		echo -e "wmm_ac_vi_cwmin=3"									>> $HOSTAPD_FILE_2
+		echo -e "wmm_ac_vi_cwmax=4"									>> $HOSTAPD_FILE_2
+		echo -e "wmm_ac_vi_txop_limit=94"							>> $HOSTAPD_FILE_2
+		echo -e "wmm_ac_vi_acm=0"									>> $HOSTAPD_FILE_2
+		echo -e "wmm_ac_vo_aifs=2"									>> $HOSTAPD_FILE_2
+		echo -e "wmm_ac_vo_cwmin=2"									>> $HOSTAPD_FILE_2
+		echo -e "wmm_ac_vo_cwmax=3"									>> $HOSTAPD_FILE_2
+		echo -e "wmm_ac_vo_txop_limit=47"							>> $HOSTAPD_FILE_2
+		echo -e "wmm_ac_vo_acm=0"									>> $HOSTAPD_FILE_2
+		echo -e ""													>> $HOSTAPD_FILE_2
+		echo -e "##### IEEE 802.11n related configuration #####"	>> $HOSTAPD_FILE_2
+		echo -e "ieee80211n=1"										>> $HOSTAPD_FILE_2
+		echo -e "ht_capab=[HT40-]"									>> $HOSTAPD_FILE_2
+		echo -e "obss_interval=10"									>> $HOSTAPD_FILE_2
+		echo -e ""													>> $HOSTAPD_FILE_2
+		echo -e "##### IEEE 802.11ac related configuration #####"	>> $HOSTAPD_FILE_2
+		echo -e ""													>> $HOSTAPD_FILE_2
+		echo -e "##### WPA/IEEE 802.11i configuration #####"		>> $HOSTAPD_FILE_2
+		echo -e "wpa=2"												>> $HOSTAPD_FILE_2
+		echo -e "wpa_passphrase=1234567890"							>> $HOSTAPD_FILE_2
+		echo -e "wpa_key_mgmt=WPA-PSK"								>> $HOSTAPD_FILE_2
+		echo -e "wpa_pairwise=CCMP"									>> $HOSTAPD_FILE_2
+#		echo -e "wpa_group_rekey=600"								>> $HOSTAPD_FILE_2
+		echo -e ""													>> $HOSTAPD_FILE_2
+	fi
+
+else if [ "${action}" == "start" ]; then
+
+	echo "------------------------------------------------------"	> $DUMP_TO_KMSG
+	echo "fx_ap:: start AP manager"									> $DUMP_TO_KMSG
+	echo "fx_ap:: devmode=${devmode}"								> $DUMP_TO_KMSG
+	echo "------------------------------------------------------"	> $DUMP_TO_KMSG
+
+	apMgr ${devmode} &
+
+else if [ "${action}" == "stop" ]; then
+
+	echo "------------------------------------------------------"	> $DUMP_TO_KMSG
+	echo "fx_ap:: stop AP manager"									> $DUMP_TO_KMSG
+	echo "------------------------------------------------------"	> $DUMP_TO_KMSG
+
+	killall apMgr
+
+else
+	echo "fx_ap:: action is unknown"
+fi
+fi
+fi
+
+

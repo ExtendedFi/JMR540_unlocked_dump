@@ -1,0 +1,306 @@
+###################################################################################
+##  apcfg
+##
+##  Configuration file for the AP.
+##  This file will "predefine" default configuration data for the AP.  This
+##  will first read all configuration data from flash (cfg -e), then fill in any
+##  defaults that are missing.  Thus the defaults will appear on the web pages
+##  even if the configuration store has been cleared.
+##
+###################################################################################
+
+AP_GROUP_EMPTY=`cfg -v AP_GROUP_EMPTY`
+FOX_UPDATE=`cfg -v fox_update`
+# AP_MAX_NUM_CLIENT=`cfg -v AP_MAX_NUM_CLIENT`
+
+if [ "$AP_GROUP_EMPTY" != "NO" ]; then
+  
+	if [ "$AP_GROUP_EMPTY" = "PARTIAL" ]; then
+	  # Get the current settings from flash/cache area
+	  cfg -e > /tmp/vars.$$
+	  . /tmp/vars.$$
+	  rm /tmp/vars.$$
+	fi
+
+    # // Foxconn add, Ignacs Wu, 2016/04/08 
+    AP_ENABLE=`cfg -v AP_ENABLE`
+    AP_SECMODE=`cfg -v AP_SECMODE`
+    AP_SECMODE_2=`cfg -v AP_SECMODE_2`
+    AP_CYPHER=`cfg -v AP_CYPHER`
+    AP_CYPHER_2=`cfg -v AP_CYPHER_2`
+    PSK_KEY=`cfg -v PSK_KEY`
+    
+    # // Foxconn add, Ignacs Wu, 2016/04/11 
+    PREPASSWD_KEY=`prepasswd read wifi`
+    
+    PSK_KEY_2=`cfg -v PSK_KEY_2`
+    AP_HIDE=`cfg -v AP_HIDE`
+    AP_HIDE_2=`cfg -v AP_HIDE_2`
+    AP_MULTISSID=`cfg -v AP_MULTISSID`
+    AP_COUNTRYCODE=`cfg -v AP_COUNTRYCODE`
+    AP_CH_RANGE=`cfg -v AP_CH_RANGE`
+    WPS_ENABLE=`cfg -v WPS_ENABLE`
+    AP_NAME=`cfg -v AP_NAME`
+    # Foxconn add start, eric hsieh, 2013/07/04
+    AP_NAME_2=`cfg -v AP_NAME_2`
+    WIFI_AUTO_SWITCH=`cfg -v WIFI_AUTO_SWITCH`
+    # Foxconn add end, eric hsieh, 2013/07/04
+    # Foxconn add start, eric hsieh, 2014/01/22
+    AP_BLOCK_TRAFFIC_BETWEEN_LAN=`cfg -v AP_BLOCK_TRAFFIC_BETWEEN_LAN`
+    # Foxconn add end, eric hsieh, 2013/01/22
+    # Foxconn add start, eric hsieh, 2014/03/12
+    AP_SECOND_SSID_NAT_AUTOADD=`cfg -v AP_SECOND_SSID_NAT_AUTOADD`
+    # Foxconn add end, eric hsieh, 2013/03/12
+    # Foxconn add start, eric hsieh, 2014/10/24 
+    WEB_REDIRECT_URL=`cfg -v WEB_REDIRECT_URL`
+    # Foxconn add end, eric hsieh, 2014/10/24 
+    ### Added start, Min-Chang, 08-08-2012
+    AP_TX_LEVEL=`cfg -v AP_TX_LEVEL`
+    # AP_MAX_NUM_CLIENT=`cfg -v AP_MAX_NUM_CLIENT`
+    AP_MAX_NUM_CLIENT_2=`cfg -v AP_MAX_NUM_CLIENT_2`
+    WIFI_ANTENNA_PATH=`cfg -v WIFI_ANTENNA_PATH`
+    WIFI_PERFORMANCE=`cfg -v WIFI_PERFORMANCE`
+    AP_MAX_INACTIVITY=`cfg -v AP_MAX_INACTIVITY`
+    ### Added end, Min-Chang, 08-08-2012
+
+	# default SSID
+	# // Foxconn add start, Ignacs Wu, 2016/04/29 
+	if [ "${AP_SSID}" = "" ]; then
+		# Use wifi_nv_mac command
+		#MAC_STR=`ifconfig ${ACCESS_AP_IFACE} | grep ${ACCESS_AP_IFACE} | cut -c 39-56`
+		MAC_STR=`wifi_nv_mac  2>/dev/null`
+		B1=`echo $MAC_STR | cut -f 1 -d ':'`
+		B2=`echo $MAC_STR | cut -f 2 -d ':'`
+		B3=`echo $MAC_STR | cut -f 3 -d ':'`
+		B4=`echo $MAC_STR | cut -f 4 -d ':'`
+		B5=`echo $MAC_STR | cut -f 5 -d ':'`
+		B6=`echo $MAC_STR | cut -f 6 -d ':'`
+		SSID_TAIL_STR=$B4$B5$B6
+		# foxconn jay sync the defualt for mifi4
+		ASSIGN_SSID="JioFi3_$SSID_TAIL_STR"
+		cfg -a AP_SSID=$ASSIGN_SSID
+		ASSIGN_SSID="JioFi3-2_$SSID_TAIL_STR"
+		cfg -a AP_SSID_2=$ASSIGN_SSID
+	fi # // Foxconn add end, Ignacs Wu, 2016/04/29 
+
+	cfg -a AP_SSIDREF=${ASSIGN_SSID:=}
+	cfg -a AP_NAME=${ASSIGN_SSID:=}
+
+
+# =========================================================
+# Set config items as default values
+# =========================================================
+	if [ "$AP_NAME" = "" ]; then
+	  cfg -a AP_NAME="eth0"
+	fi
+
+	if [ "$AP_SECMODE" = "" ]; then
+	  cfg -a AP_SECMODE="WPA-PSK/WPA2-PSK"
+	fi
+
+	if [ "$AP_SECMODE_2" = "" ]; then
+	  cfg -a AP_SECMODE_2="WPA-PSK/WPA2-PSK"
+	fi
+	
+	if [ "$FOX_UPDATE" = "" ]; then
+		cfg -a fox_update="1"
+	fi	
+
+	if [ "$AP_CYPHER" = "" ]; then
+	  cfg -a AP_CYPHER="AES"
+	fi
+
+	if [ "$AP_CYPHER_2" = "" ]; then
+	  cfg -a AP_CYPHER_2="AES"
+	fi
+	
+	counter=0 
+	while [ 1 ]
+	do
+		if [ "$PREPASSWD_KEY" == "prepasswd read [wifi] fail" ]; then
+			if [ ${counter} -ge 10 ]; then
+				echo "prepasswd read wifi fail over 10 times, skip and continue to booting" >> /dev/kmsg
+				break
+			fi
+			echo "prepasswd read wifi fail when booting" >> /dev/kmsg
+			PREPASSWD_KEY=`prepasswd read wifi`
+			counter=$(( $counter + 1 ))
+			sleep 1
+		else
+			break
+		fi
+	done
+
+	# PSK_KEY => PreShareKey # Foxconn modify, Ignacs Wu, 2016/03/29 
+	#if [ "$PSK_KEY" = "" ]; then
+	#  cfg -a PSK_KEY="1234567a"
+	#fi
+	# CWMPAP1SECKEYPASSPHRASE => PassPhrase # Foxconn remove, Ignacs Wu, 2016/04/19 
+	if [ ! "$PREPASSWD_KEY" = "" ]; then
+	  cfg -a CWMPAP1SECKEYPASSPHRASE=$PREPASSWD_KEY
+	fi
+
+	if [ "$PSK_KEY_2" = "" ]; then
+	  cfg -a PSK_KEY_2="1234567b"
+	fi
+
+	if [ "${AP_PRIMARY_CH}" = "" ]; then
+	  cfg -a AP_PRIMARY_CH=0
+	fi
+
+	if [ "${AP_PRIMARY_CH_2}" = "" ]; then
+	  cfg -a AP_PRIMARY_CH_2=0
+	fi
+
+	if [ "${AP_PRIMARY_5G_CH}" = "" ]; then
+	  cfg -a AP_PRIMARY_5G_CH=0
+	fi
+
+	if [ "${AP_PRIMARY_5G_CH_2}" = "" ]; then
+	  cfg -a AP_PRIMARY_5G_CH_2=0
+	fi
+
+	if [ "${AP_HIDE}" = "" ]; then
+	  cfg -a AP_HIDE=0
+	fi
+
+	if [ "${AP_HIDE_2}" = "" ]; then
+	  cfg -a AP_HIDE_2=0
+	fi
+
+	if [ "${AP_MULTISSID}" = "" ]; then
+	  cfg -a AP_MULTISSID=0
+	fi
+
+	if [ "${AP_CHMODE}" = "" ]; then
+	  cfg -a AP_CHMODE="b+g+n"
+	fi
+
+	if [ "${AP_CHMODE_2}" = "" ]; then
+	  cfg -a AP_CHMODE_2="b+g+n"
+	fi
+
+	if [ "${AP_80211AC}" = "" ]; then
+	  cfg -a AP_80211AC="0"
+	fi
+
+	if [ "${AP_80211AC_2}" = "" ]; then
+	  cfg -a AP_80211AC_2="0"
+	fi
+
+	if [ "$AP_COUNTRYCODE" = "" ]; then 
+		cfg -a AP_COUNTRYCODE="US"
+	fi
+
+	if [ "$AP_CH_RANGE" = "" ]; then    
+		cfg -a AP_CH_RANGE=1
+	fi
+
+	if [ "$WPS_ENABLE" = "" ]; then
+		cfg -a WPS_ENABLE=1
+	fi
+
+# Foxconn add start, eric hsieh, 2013/07/04
+	if [ "$AP_NAME_2" = "" ]; then
+	  cfg -a AP_NAME_2="eth1"
+	fi
+
+	if [ "$WIFI_AUTO_SWITCH" = "" ]; then
+	  cfg -a WIFI_AUTO_SWITCH="0"
+	fi
+# Foxconn add end, eric hsieh, 2013/07/04
+
+# Foxconn add start, eric hsieh, 2014/01/22
+	if [ "$AP_BLOCK_TRAFFIC_BETWEEN_LAN" = "" ]; then
+	  cfg -a AP_BLOCK_TRAFFIC_BETWEEN_LAN="1"
+	fi
+# Foxconn add end, eric hsieh, 2013/01/22
+
+	if [ "$AP_TX_LEVEL" = "" ]; then
+	  cfg -a AP_TX_LEVEL="H"
+	fi
+
+# 10 for MIFI platform // Foxconn add, Ignacs Wu, 2016/04/18 
+	if [ "$AP_MAX_NUM_CLIENT" = "" ]; then
+	  cfg -a AP_MAX_NUM_CLIENT="31"
+	fi
+
+	if [ "$AP_MAX_NUM_CLIENT_2" = "" ]; then
+	  cfg -a AP_MAX_NUM_CLIENT_2="1"
+	fi
+
+	if [ "$WIFI_ANTENNA_PATH" = "" ]; then
+	  cfg -a WIFI_ANTENNA_PATH="0"
+	fi
+
+	if [ "$WIFI_PERFORMANCE" = "" ]; then
+	  cfg -a WIFI_PERFORMANCE="1"
+	fi
+
+	if [ "$AP_MAX_INACTIVITY" = "" ]; then
+	  cfg -a AP_MAX_INACTIVITY="60"
+	fi
+
+# Foxconn add start, eric hsieh, 2014/06/04 
+	AP_SECOND_SSID_NAT_AUTOADD=`cfg -v AP_SECOND_SSID_NAT_AUTOADD`
+	if [ "$AP_SECOND_SSID_NAT_AUTOADD" = "" ]; then
+	  cfg -a AP_SECOND_SSID_NAT_AUTOADD="1"
+	fi
+# Foxconn add end, eric hsieh, 2014/06/04 
+
+# Foxconn add start, eric hsieh, 2014/03/12
+	if [ "$WEB_REDIRECT_URL" = "" ]; then
+	  cfg -a WEB_REDIRECT_URL="www.jio.com"
+	fi
+# Foxconn add end, eric hsieh, 2013/03/12
+
+# Now it's non-empty
+	cfg -a AP_GROUP_EMPTY=NO
+
+	# // Foxconn add, Ignacs Wu, 2016/04/08 
+	if [ "$AP_ENABLE" = "" ]; then
+	  cfg -a AP_ENABLE="1"
+	fi			
+	
+	if [ "$CWMPAP1WMMENABLE" = "" ]; then
+	  cfg -a CWMPAP1WMMENABLE="1"
+	fi
+	# foxconn 2016/04/19 jay add
+
+	if [ "$CWMPAP1UAPSDENABLE" = "" ]; then
+	  cfg -a CWMPAP1UAPSDENABLE="1"
+	fi
+	#Foxconn add, S.K.Yang 2016/06/15, let download mode be taken effect till bootup completed
+	#Foxconn modified, Wen-Fei 2016/07/25, disable download mode.
+	cfg -a FX_DOWNLOAD_MODE="0"  
+  fi
+ 
+  if [ "$FOX_UPDATE" = "" ]; then
+    
+	echo "upgrade to 5.6 from lower version."
+    HTTP_GUI_REFRESH=`cfg -v HTTP_GUI_REFRESH`
+    AP_CYPHER=`cfg -v AP_CYPHER`
+    AP_CYPHER_2=`cfg -v AP_CYPHER_2`
+    	
+	if [ "$AP_CYPHER" = "AES/TKIP" ]; then
+		cfg -a AP_CYPHER="AES"
+		fi
+
+		if [ "$AP_CYPHER_2" = "AES/TKIP" ]; then
+		cfg -a AP_CYPHER_2="AES"
+		fi
+
+		if [ "$HTTP_GUI_REFRESH" = "300" ]; then
+		cfg -a HTTP_GUI_REFRESH="10"
+		fi	
+
+		cfg -a fox_update="1"
+  fi	
+  
+  # Foxconn 20171115 jay: if AP_MAX_NUM_CLIENT is empty, gt will be not working.
+  AP_MAX_NUM_CLIENT=`cfg -v AP_MAX_NUM_CLIENT`
+  if [ ${AP_MAX_NUM_CLIENT} -gt 31 ]; then
+      cfg -a AP_MAX_NUM_CLIENT="31"
+  fi
+ 
+  cfg -a WPS_WAY=0

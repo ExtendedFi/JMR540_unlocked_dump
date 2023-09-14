@@ -1,0 +1,28 @@
+#!/bin/sh
+
+# fxcm: init.d script to start fxcm daemon for firmware download
+
+set -e
+
+case "$1" in
+  start)
+        echo -n "Starting fampdiag: "
+        start-stop-daemon -S -b -o -x /usr/bin/fampdiag
+        echo "done"
+        ;;
+  stop)
+        echo -n "Stopping fampdiag: "
+        start-stop-daemon -K -n fampdiag                
+        echo "done"
+        ;;
+  restart)
+        $0 stop
+        $0 start
+        ;;
+  *)
+        echo "Usage: fampdiag {start | stop | restart}" >&2
+        exit 1
+        ;;
+esac
+
+exit 0

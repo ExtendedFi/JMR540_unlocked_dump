@@ -1,0 +1,1519 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link href="/css/table.css" rel="stylesheet">
+<link href="/css/stylesheet.css" rel="stylesheet" type="text/css">
+<link href="/css/elements.css" rel="stylesheet">
+<link href="/css/basicContext.min.css" rel="stylesheet">
+<script language="JavaScript" src="/js/validate.js"></script>
+<script language="JavaScript" src="/js/common.js"></script>
+<script type="text/javascript" src="/js/swipe.js" language="javascript"></script>
+<script language="JavaScript" src="/js/webdav.js"></script>
+<script language="JavaScript" src="/js/basicContext.min.js"></script>
+<title>Wi-Fi Disk</title>
+<script language="JavaScript">
+var ismobile = isMobileWeb();
+var fileSelectData = [];
+var fileData = [];
+var current_path = webdav_rootpath;
+var pre_path = [];
+var x_data;
+var first_page = 1;
+var current_page = 0;
+var MAX_DAT_PER_PAGE = 14;
+if(ismobile == 1)
+	MAX_DAT_PER_PAGE = 10;
+var downloadFile = "";
+var isPut = 0;
+var splitLen = 50;
+var invalidStr = "/:*?<>|\\";
+var selectGrayEntry = "";
+var isCut = 0;
+var beforeName = '';
+var enterDirName ='';
+
+function validString(s)
+{
+	var i;
+	for (i = 0; i < s.length; i++) {
+		var c = s.charAt(i);
+		if (invalidStr.indexOf(c) != -1){
+			return false;
+		}
+	}
+	
+	return true;
+}
+
+function clearSelectGrayEntry()
+{
+		if(selectGrayEntry != '')
+		{
+			//to deter this file exists in this path.
+			var previous_name = selectGrayEntry.split(":");		
+			var i = 0;
+			for(i = 0; i <x_data.length; i++)
+			{
+				var href = my_getElementsByTagName(x_data[i], "href");
+				if(href[0].childNodes[0].nodeValue != "%a0")
+				{
+				var fileName = decodeURIComponent(href[0].childNodes[0].nodeValue);
+				if(fileName == previous_name[2])
+				{
+					document.getElementById(previous_name[2]).style.color = "#000000";
+					document.getElementById(previous_name[2]).style.opacity="1";	
+					break;
+				}
+				}
+			}
+			selectGrayEntry = '';
+		}
+}
+
+function sd_query_mkcol_cb()
+{
+    if( xhr_sd_query.readyState == 4 )
+    {
+		if( xhr_sd_query.status == 201 )
+		{
+		    document.getElementById('uploadOK').style.display = "block";
+			PROPFIND(0);	
+		}
+		else if(xhr_sd_query.status == 409)
+		{
+		    document.getElementById('options_state').style.display = 'block';
+            document.getElementById("options_state").innerHTML = 'Status: <b>ancestor does not existed.</b>';
+ 		}
+		else if(xhr_sd_query.status == 405)
+		{
+		    document.getElementById('options_state').style.display = 'block';
+            document.getElementById("options_state").innerHTML = 'Status: <b>file or folder with the same name already existed.</b>';
+ 		}
+        else
+        {  
+            document.getElementById('options_state').style.display = 'block';
+            document.getElementById("options_state").innerHTML = 'Status: there is error occurred during operation. error code = ' + xhr_sd_query.status + ': ' + xhr_sd_query.statusText;
+        }
+	}
+}
+
+function sd_query_put_cb()
+{
+    if( xhr_sd_query.readyState == 4 )
+    {
+		if( xhr_sd_query.status == 201 )
+		{
+		    document.getElementById('uploadOK').style.display = "block";			
+			PROPFIND(0);
+		}
+        else if( xhr_sd_query.status == 507 
+            || ( (isPut == 1) && (xhr_sd_query.status == 0)))
+		{
+		    document.getElementById('uploadOK').style.display = "block";
+		    uploadFailed(xhr_sd_query.status, xhr_sd_query.statusText);
+		}
+        else
+        {  
+		    document.getElementById('uploadOK').style.display = "block";
+		    uploadFailed(xhr_sd_query.status, xhr_sd_query.statusText);
+        }
+		
+		isPut  = 0;
+	}
+}
+
+function sd_query_del_cb()
+{
+    if( xhr_sd_query.readyState == 4 )
+    {
+		if( xhr_sd_query.status == 204 )
+		{
+			if(fileSelectData.length == 0)
+			{
+				document.getElementById("allselect").checked = false;
+				PROPFIND(0);
+            }
+			else			
+			{
+				deleteAction();
+			}
+		}
+        else
+        {  
+            document.getElementById('options_state').style.display = 'block';
+            document.getElementById("options_state").innerHTML = 'Status: there is error occurred during operation. error code = ' + xhr_sd_query.status + ': ' + xhr_sd_query.statusText;
+        }
+	}
+}
+
+function sd_query_copy_cb()
+{
+    if( xhr_sd_query.readyState == 4 )
+    {
+		clearSelectGrayEntry();
+        if( xhr_sd_query.status == 204 )
+        {
+			PROPFIND(0);
+		}
+        else if( xhr_sd_query.status == 201 )
+        {
+			PROPFIND(0);
+		}		
+        else
+        {  
+            document.getElementById('options_state').style.display = 'block';
+            document.getElementById("options_state").innerHTML = 'Status: there is error occurred during operation. error code = ' + xhr_sd_query.status + ': ' + xhr_sd_query.statusText;
+        } 
+	}		
+}
+
+function sd_query_dir_cb()
+{
+    if( xhr_sd_query.readyState == 4 )
+    {
+        if( xhr_sd_query.status == 200 )
+        {			
+			PROPFIND(1);
+		}
+	}
+}
+
+function sd_query_home_cb()
+{
+    if( xhr_sd_query.readyState == 4 )
+    {
+        if( xhr_sd_query.status == 200 )
+        {			
+			PROPFIND(2);
+		}
+	}
+}
+
+function sd_query_back_cb()
+{
+    if( xhr_sd_query.readyState == 4 )
+    {
+        if( xhr_sd_query.status == 200 )
+        {			
+			PROPFIND(3);
+		}
+	}
+}
+
+function sd_query_options_cb()
+{
+    if( xhr_sd_query.readyState == 4 )
+    {
+        if( xhr_sd_query.status == 200 )
+        {
+            var response_text = xhr_sd_query.responseText;
+            xhr_sd_query_retry = XHR_RETRY_COUNT;			
+            if( response_text != null && response_text.length > 0 )
+            {
+                if(response_text.search('No sdcard.')!=-1)
+                {
+                    //document.getElementById('sdFile').style.display = 'none';
+                    document.getElementById('options_state').style.display = 'block';
+                    document.getElementById("options_state").innerHTML = 'Status: <b>No SD Card!</b>';
+                } else if(response_text.search('Not FAT32.')!=-1)
+                {
+                    document.getElementById('options_state').style.display = 'block';
+                    document.getElementById("options_state").innerHTML = '<div>Filesystem of SD card is not supported.</div><br> <div>Click <b>Format</b> button below to format filesystem of SD card to FAT32.</div><br> <div><em style="color:red">Note: all data in SD card will be deleted.</em></div><div class="buttonStyle" align="left" style="width: 120px;"><input value="Format" onclick="formatActionPopup(2)" type="button"></div>';
+                }
+                else if(response_text.search('sdcard inserted')!=-1)
+                { 
+                    document.getElementById('sdFile').style.display = 'block';
+                    //document.getElementById("options_state").innerHTML = 'Status: SD Card inserted.';
+					PROPFIND(0);
+				}
+            }
+			else
+			{ 				
+				PROPFIND(0);
+			}				
+        }
+        else if (xhr_sd_query.status == 401)
+        {
+            document.getElementById('options_state').style.display = 'block'; 
+            document.getElementById("options_state").innerHTML = 'Authentication failed: Access is denied due to invalid credentials.<br> Please enter correct username and password to access content of Wi-Fi disk.';
+        }
+        else
+        {  
+            document.getElementById('options_state').style.display = 'block';
+            document.getElementById("options_state").innerHTML = 'Status: there is error occurred during operation. error code = ' + xhr_sd_query.status + ': ' + xhr_sd_query.statusText;
+        }        
+    }
+}
+
+function resetStatusText()
+{ 
+    document.getElementById('options_state').style.display = 'none';
+}
+
+function resetProgressBar()
+{
+    var pBar = document.getElementById("progressBar");
+	var val = document.getElementById('n_per');
+    pBar.value = 0;
+    pBar.getElementsByTagName('span')[0].innerHTML = pBar.value;
+    val.innerHTML = pBar.value + '%';    
+}
+
+function hideProgressBar()
+{
+    document.getElementById('pBarTag').style.visibility = "hidden";
+    document.getElementById('pBarTag').style.display = "none";
+    //I am lazy...
+    resetStatusText();
+    resetProgressBar();
+}
+
+function keepSelectAction(name)
+{
+	document.getElementById(name).style.color = "#A4A4A4";
+	document.getElementById(name).style.opacity="0.5";
+}
+
+function cutOrCopyAction(cut,fileNameType)
+{
+	//alert(window.location.host);
+	var name = fileNameType.split(":");
+	var type = name[1];	
+	
+	resetStatusText();
+	if(selectGrayEntry != '')
+	{
+		//to deter this file exists in this path.
+		var previous_name = selectGrayEntry.split(":");		
+		var i = 0;
+		for(i = 0; i <x_data.length; i++)
+		{
+			var href = my_getElementsByTagName(x_data[i], "href");
+			if(href[0].childNodes[0].nodeValue != "%a0")
+			{
+			var fileName = decodeURIComponent(href[0].childNodes[0].nodeValue);
+			if(fileName == previous_name[2])
+			{
+				document.getElementById(previous_name[2]).style.color = "#000000";
+				document.getElementById(previous_name[2]).style.opacity="1";	
+				break;
+			}
+			}
+		}
+	}
+	
+	keepSelectAction(name[0]);
+	selectGrayEntry='';
+	selectGrayEntry = current_path+':'+type+':'+name[0];	
+	isCut = cut;
+}
+
+function uploadFailed(status, text)
+{
+    if( (status == 507)
+        || ((isPut == 1) && (status == 0)) )
+    {
+        var val = document.getElementById('n_per');
+        document.getElementById('n_fname').innerHTML += '<br><br>Upload failed: insufficient storage';
+        if((isPut == 1) && (status == 0)) 
+        {
+             document.getElementById('n_fname').innerHTML += ' or network connection has been reset.';
+        }
+        resetProgressBar();
+    }else if(status == 409)
+ 
+    {
+        var val = document.getElementById('n_per');
+        document.getElementById('n_fname').innerHTML += '<br><br>Upload failed: file or folder with the same name already existed.';        
+        resetProgressBar();
+    }else
+    { 
+        var val = document.getElementById('n_per');
+        document.getElementById('n_fname').innerHTML += '<br><br>Upload failed: there is error occurred during operation. error code = ' + status + ': ' + text;        
+        resetProgressBar();
+    }
+}
+
+function progressHandler(event){
+    var val = document.getElementById('n_per');
+    var percent = (event.loaded / event.total) * 100;
+    var pBar = document.getElementById("progressBar") ;
+    pBar.value = Math.round(percent);
+    pBar.getElementsByTagName('span')[0].innerHTML = pBar.value;
+	val.innerHTML = pBar.value + '%';
+
+}
+
+function completeHandler(event){
+    //document.getElementById('progressBar').style.visibility = "hidden";
+    //document.getElementById("progressBar").value = 0;
+} 
+
+function btnCancel()
+{ 
+	document.getElementById("mainContent").style.opacity="1";
+	document.getElementById("mainContent").style.background="#ffffff";	
+	document.getElementById('mbox').style.display = "none";
+	
+	document.getElementById('uploadOK').style.display = "none";
+	document.getElementById('addfolder').style.display = "none";
+	document.getElementById('move').style.display = "none";
+	document.getElementById('uploadBar').style.display = "none";
+	
+	return false;
+}
+
+function EnterDir(filename)
+{
+	//current_path = current_path+'/'+filename;
+	enterDirName = current_path+'/'+filename;
+	WebDav_SendOptions("OPTIONS",sd_query_dir_cb, enterDirName+'/');
+	resetStatusText();
+}
+
+function homeAction()
+{
+	enterDirName = webdav_rootpath;
+	WebDav_SendOptions("OPTIONS",sd_query_home_cb, enterDirName);	
+	resetStatusText();
+	document.getElementById('allselect').checked = false;
+}
+
+function backAction()
+{
+	var index = pre_path.length;
+	if(index > 1)
+	{
+	    enterDirName = pre_path[index-1];
+	}
+	else
+	{
+	    enterDirName = webdav_rootpath;
+	}
+	
+	resetStatusText();
+	document.getElementById('allselect').checked = false;
+	WebDav_SendOptions("OPTIONS",sd_query_back_cb, enterDirName+'/');
+}
+
+function formatAction(method) 
+{
+    WebDav_SendOptions("X-DELETE",sd_query_home_cb, webdav_rootpath);
+    if(2 == method)
+    {
+        document.getElementById("options_state").innerHTML = 'Formating is in progress, please wait.'
+;
+        setTimeout("location.reload(true)", 5*1000);
+    }
+    else
+    {              
+    resetStatusText();
+	document.getElementById('allselect').checked = false;    
+    }
+}
+
+function formatActionPopup(method)
+{
+    if ( confirm ("All data in your disk will be deleted, are you sure you want to format the disk?") == false)
+	{
+		return;	
+	}
+	formatAction(method);
+}
+
+function openHelpUrl()
+{
+	window.open('/support/help.html', 'Help');
+}
+
+//Delete
+function deleteAction()
+{		
+	var name = fileSelectData[0].split(":");
+	var type = name[1];	
+
+	if(type == '0')//file
+	{
+		WebDav_SendOptions("DELETE",sd_query_del_cb, current_path+'/'+name[0]);	
+	}
+	else
+	{
+		WebDav_SendOptions("DELETE",sd_query_del_cb, current_path+'/'+name[0]+'/');
+	}
+
+	fileSelectData.splice(0, 1);
+
+	clearSelectGrayEntry();
+}
+
+function deleteActionButton()
+{
+    resetStatusText();
+	if(fileSelectData != "")
+	{
+	if ( confirm ("Are you sure you want to remove the file or folder from your disk storage?") == false)
+	{
+		return;	
+	}
+		deleteAction();
+	}
+}
+
+function pasteActionButton()
+{
+    resetStatusText();
+	if(selectGrayEntry != '')
+	{
+		var parameter = selectGrayEntry.split(":");
+		var method = "COPY";
+		if(isCut == 1)
+			method = "MOVE";
+			
+		var isFile = 0;
+		var type = 'folder';
+		if(parameter[1] == '0')//file
+		{		
+			isFile = 1;
+			type = 'file';
+		}
+			
+		var i;	
+		for(i = 0; i <x_data.length;i++)
+		{
+			var href = my_getElementsByTagName(x_data[i], "href");
+			if(href[0].childNodes[0].nodeValue != "%a0")
+			{
+			var fileName = decodeURIComponent(href[0].childNodes[0].nodeValue);
+			var contenttype = my_getElementsByTagName(x_data[i], "getcontenttype");
+			var cont_type = contenttype[0].childNodes[0].nodeValue ;
+			var isDataFile = 0;
+			if(cont_type != "httpd/directory")
+				isDataFile = 1;
+				
+			if(fileName == parameter[2])
+			{
+				if(isDataFile != isFile)
+				{
+					if(isDataFile == 1)
+					  alert("Conflict: there is a file with the same name already existed.");
+					else
+					   alert("Conflict: there is a folder with the same name already existed.");	
+					return;	
+				}
+				else
+				{
+					if(parameter[0] == current_path)
+					{
+						alert("Source and destination are the same.");
+						return;
+					}
+					
+					if ( confirm ("Destination "+type+" "+fileName+" will be overwritted, do you want to continue?") == false)
+				{
+					return;	
+					}					
+				}
+				break;
+			}
+		}		
+		}
+		if(isFile == 1)//file
+		{		
+			WebDav_SendCOPYorMOVE(method, sd_query_copy_cb, window.location.host, parameter[0]+'/'+parameter[2], current_path+'/');
+		}
+		else
+		{
+			WebDav_SendCOPYorMOVE(method, sd_query_copy_cb, window.location.host, parameter[0]+'/'+parameter[2]+'/', current_path+'/');
+		}
+	
+		clearSelectGrayEntry();
+	}
+}
+
+function Confirm()
+{
+	document.getElementById('mbox').style.display = "none";
+	document.getElementById("mainContent").style.opacity="1";
+	document.getElementById("mainContent").style.background="#ffffff";
+	document.getElementById('uploadOK').style.display = "none";
+	hideProgressBar();
+}
+
+function uploadAction()
+{
+	var file = document.getElementById('uploadFile').files[0];
+	resetStatusText();
+	if(file) 
+	{
+		var i;	
+		for(i = 0; i <x_data.length;i++)
+		{
+			var href = my_getElementsByTagName(x_data[i], "href");
+			if(href[0].childNodes[0].nodeValue != "%a0")
+			{			
+				var fileName = decodeURIComponent(href[0].childNodes[0].nodeValue);
+				var contenttype = my_getElementsByTagName(x_data[i], "getcontenttype");
+				var cont_type = contenttype[0].childNodes[0].nodeValue ;
+				var isDataFile = 0;
+				if(cont_type != "httpd/directory")
+					isDataFile = 1;			
+				
+				if(fileName == file.name)
+				{
+					if(isDataFile == 0)
+					{
+						alert("Conflict: there is a folder with the same name already existed.");	
+					uploadFile.onclick = function () {
+						this.value = '';
+						uploadFile.onchange = function () {
+							if (this.value) {
+								uploadAction();
+							}
+						};
+					};					
+						return;
+					}
+					
+					if ( confirm ("Destination file "+fileName+" will be overwritted, do you want to continue?") == false)
+					{
+				
+						uploadFile.onclick = function () {
+						this.value = '';
+						uploadFile.onchange = function () {
+							if (this.value) {
+								uploadAction();
+							}
+						};
+					};
+						return;	
+					}
+
+					break;				
+				}
+			}
+		}
+		var formData = new FormData();
+		formData.append('file', file);
+		PopUpBoxWindow('Upload');		
+		isPut = 1;
+		document.getElementById('pBarTag').style.visibility = "visible";
+		document.getElementById('pBarTag').style.display = "block";
+		document.getElementById('n_fname').innerHTML = 'Uploading:&nbsp;'+'<b style="font-size: 14px;">' + file.name + '</b>';
+		WebDav_SendPUT(sd_query_put_cb, current_path+'/'+file.name, file.type, formData, file.size, progressHandler, completeHandler);
+	}
+	
+	clearSelectGrayEntry();
+	uploadFile.onclick = function () {
+	    this.value = '';
+	    uploadFile.onchange = function () {
+		if (this.value) {
+			uploadAction();
+		}
+	    };
+        };
+}
+
+function ContextMenu(){
+	PopUpBoxWindow('Move');
+	return false;
+}
+
+//Start to download
+function downloadAction(file)
+{
+    resetStatusText();
+	var isSafari = Object.prototype.toString.call(window.HTMLElement).indexOf('Constructor') > 0;
+	
+	var link = document.createElement("a");
+	link.href = fx_encode(current_path+'/'+file);
+
+	if (isSafari == true) 
+	{
+		//Dispatching click event.
+		if (document.createEvent) {
+			var e = document.createEvent('MouseEvents');
+			e.initEvent('click' ,true ,true);
+			link.dispatchEvent(e);
+		}
+	}
+	else
+	{
+	    link.download = fx_encode(file);
+	    document.body.appendChild(link);
+	    link.click();
+	    document.body.removeChild(link);
+	    delete link;
+	}
+}
+
+function PopUpBoxWindow(action)
+{
+	resetStatusText();
+	if(action == 'AddFolder')
+	{
+		var foldername = document.getElementById('Folder_Name');
+		document.getElementById('uploadOK').style.display = "none";
+		document.getElementById('addfolder').style.display = "block";
+		document.getElementById('uploadBar').style.display = "none";		
+		document.getElementById('move').style.display = "none";
+		//document.getElementById('popup').style.width = "400px";
+		foldername.value="";		
+		foldername.focus();
+	}
+	else if(action == 'Upload')
+	{		
+		document.getElementById('uploadOK').style.display = "none";
+		document.getElementById('addfolder').style.display = "none";
+		document.getElementById('move').style.display = "none";
+		document.getElementById('uploadBar').style.display = "block";		
+		//popup		
+		//document.getElementById('popup').style.width = "500px";
+	}
+	else if(action == 'Move')
+	{
+		var name = document.getElementById('Rename');
+		document.getElementById('uploadOK').style.display = "none";
+		document.getElementById('move').style.display = "block";
+		document.getElementById('addfolder').style.display = "none";
+		document.getElementById('uploadBar').style.display = "none";
+		//document.getElementById('popup').style.width = "400px";
+		name.focus();
+	}
+	
+	document.getElementById('mbox').style.display = "block";
+	document.getElementById("mainContent").style.opacity="0.5";
+	document.getElementById("mainContent").style.background="#eaeae1";	
+}
+
+function MoveAction(fileNameType)
+{
+	var tileName = document.getElementById('lRename');
+	var name = fileNameType.split(":");
+	var type = name[1];	
+
+    if(name[1] == 1)
+    {
+		tileName.innerHTML = 'Folder Name:';
+	}
+    else
+		tileName.innerHTML = 'File Name:';
+		
+	document.getElementById('Rename').value = name[0];
+	beforeName = name[0];
+	PopUpBoxWindow('Move');
+}
+
+function RenameAction()
+{
+	var afterName = document.getElementById('Rename').value;
+	var tileName = document.getElementById('lRename');
+	
+	if(validString(afterName) == false)
+	{
+		alert(invalidStr+" are not allowed.");
+		return;
+	}
+	
+	if(beforeName != afterName)
+	{	
+		var isFile = 0;
+		if(tileName.innerHTML == 'File Name:')//file
+		{
+			isFile = 1;
+		}
+			
+		var i;	
+		for(i = 0; i <x_data.length;i++)
+		{
+			var href = my_getElementsByTagName(x_data[i], "href");	
+			var fileName='';
+			if(href[0].childNodes[0].nodeValue != "%a0")
+			{
+				fileName = decodeURIComponent(href[0].childNodes[0].nodeValue);
+			}
+			else
+			{
+				fileName = encodeURIComponent(href[0].childNodes[0].nodeValue);
+		
+			}				
+			var contenttype = my_getElementsByTagName(x_data[i], "getcontenttype");
+			var cont_type = contenttype[0].childNodes[0].nodeValue ;
+			var isDataFolder = 0;
+			
+			if(cont_type == "httpd/directory")
+				isDataFolder = 1;
+				
+			if( fileName == afterName)
+			{
+				if(isFile != isDataFolder)
+				{
+					if(isFile == 1)
+						alert("Conflict: there is a file with the same name already existed.");
+					else
+						alert("Conflict: there is a folder with the same name already existed.");
+				}
+				else
+				{
+					if(isFile == 1)
+						alert("Conflict: there is a folder with the same name already existed.");
+					else	
+						alert("Conflict: there is a file with the same name already existed.");
+				}
+				return false;
+			}
+		}
+		
+		if(isFile == 1)
+		{
+			WebDav_SendCOPYorMOVE("MOVE", sd_query_copy_cb, window.location.host, current_path+'/'+beforeName, current_path+'/'+afterName);
+		}
+		else
+		{
+			WebDav_SendCOPYorMOVE("MOVE", sd_query_copy_cb, window.location.host, current_path+'/'+beforeName+'/', current_path+'/'+afterName+'/');
+		}
+	}
+	
+
+	document.getElementById('move').style.display = "none";
+	document.getElementById('mbox').style.display = "none";
+	document.getElementById("mainContent").style.opacity="1";
+	document.getElementById("mainContent").style.background="#ffffff";	
+}
+
+function addfolder()
+{
+	var folderName = document.getElementById('Folder_Name');
+	if(checkEmpty(folderName))
+	{
+		alert("Folder Name can not be empty.");
+		return;
+	}
+	
+	if(folderName.value.length > 128)
+	{
+		alert("The maximum length of Folder Name is 128.");
+		return;
+	}	
+	
+	var s = folderName.value;
+	if(validString(s) == false)
+	{
+		alert(invalidStr+" are not allowed.");
+			return;
+		}
+
+	document.getElementById('addfolder').style.display = "none";
+	document.getElementById('mbox').style.display = "none";
+	document.getElementById("mainContent").style.opacity="1";
+	document.getElementById("mainContent").style.background="#ffffff";
+
+	var create_path;
+	create_path = current_path+"/"+folderName.value+"/";
+	WebDav_SendOptions("MKCOL",sd_query_mkcol_cb, create_path);
+	clearSelectGrayEntry();
+}
+
+function clear_table()
+{
+	fileSelectData = [];
+	fileData = [];
+    while(document.getElementById("webdav_table").rows.length > 1)
+        document.getElementById("webdav_table").deleteRow(-1);
+} 
+
+function SelectEntry(nameAndType, i)
+{
+	 var id = "cbid"+i;	
+	 //fileNameAndType
+	 if(document.getElementById(id).checked == true)
+	 {		
+		fileSelectData.push(nameAndType);
+	 }
+	 else
+	 {
+		var index = fileSelectData.indexOf(nameAndType);
+		fileSelectData.splice(index, 1);
+	 }
+}
+
+function my_getElementsByTagName(xml,tag) {
+    return xml.getElementsByTagNameNS
+      ? xml.getElementsByTagNameNS("DAV:",tag)
+      : xml.getElementsByTagName("D:"+tag);
+} 
+
+function splitFileName(fileName) 
+{    
+    var i=0;
+    var flen = fileName.length;
+    var splitName = "";
+     
+    if(flen <= splitLen)
+        return fileName;
+
+    while(flen > splitLen)
+    {
+        splitName += fileName.substr(i*splitLen, splitLen);
+        i++;
+        flen -= splitLen; 
+        splitName += "<br/>";
+    }
+    if(flen > 0)
+    { 
+        splitName += fileName.substr(i*splitLen);
+    } 
+    return splitName;
+} 
+
+function bindEvent(elem , eventType , callback){
+	var ieType = ["on" + eventType ];
+	if( ieType in elem ){
+		elem[ ieType ] = callback;
+	}else if("attachEvent" in elem){
+		elem.attachEvent(ieType ,callback);
+	}else{
+		elem.addEventListener(eventType ,callback , false);
+	}
+}
+
+function insert_sd_data(data, i)
+{
+	var webdav_table = document.getElementById("webdav_table");	
+	var pasteName = "";
+	var pastePath = "";
+	var isIncluded = 0;
+	if(selectGrayEntry != '')
+    {
+		var parameter = selectGrayEntry.split(":");	
+		pasteName = parameter[2];
+		pastePath = parameter[0];
+	}	
+	
+	var new_row = webdav_table.insertRow(-1);
+	new_row.className = "row_item";
+	new_row.id = i;
+	 
+	var href = my_getElementsByTagName(data, "href");
+	var fileName = decodeURIComponent(href[0].childNodes[0].nodeValue);
+	if((fileName == pasteName) && (pastePath == current_path))
+	  isIncluded = 1;
+	
+	var contenttype = my_getElementsByTagName(data, "getcontenttype");
+	var cont_type = contenttype[0].childNodes[0].nodeValue ;
+	
+	var contentlength = my_getElementsByTagName(data, "getcontentlength");
+	var fileSize = contentlength[0].childNodes[0].nodeValue ;
+	
+	var darkbg = i % 2;
+	if(darkbg == 1)
+		new_row.className = "row_item_bg";
+		
+	if(parseInt(fileSize)<1024)
+	{
+		fileSize=fileSize+'B';
+	}else if(parseInt(fileSize)<1048576)
+	{
+		var size=parseInt((parseInt(fileSize)/1024)*100);
+		fileSize=size/100+'KB';
+	}
+	else
+	{
+		var size=parseInt((parseInt(fileSize)/1048576)*100);
+		fileSize=size/100+'MB';
+	}
+	
+	var isDir = "0";
+	if(cont_type == "httpd/directory")
+	{
+	   fileSize = "-";
+	   isDir = "1";
+	}
+				
+	var td1 = document.createElement("td");	
+	var td1_div = document.createElement('div');
+	td1_div.id = 'cell';
+	td1_div.className = 'cell';
+	var checkbox = document.createElement('input');
+	checkbox.type = "checkbox";
+	checkbox.name = "cbx"+i;
+	checkbox.value = "cbval"+i;
+	checkbox.id = "cbid"+i;
+	var fileNameAndType = fileName+':'+isDir;
+	checkbox.setAttribute("onclick", "SelectEntry(\""+ fileNameAndType + "\","+i+")");
+	
+	var label = document.createElement('label')
+	label.htmlFor = "cbid"+i;
+	
+	td1.appendChild(td1_div);
+	td1_div.appendChild(checkbox);
+	td1_div.appendChild(label);
+	
+	var td2 = document.createElement("td");
+	td2.style.textAlign="left";
+	td2.style.fontSize="12px";
+	
+	var type_img = document.createElement("img");
+	type_img.setAttribute("style", "padding-right:10px");
+	//var oncontextmenu_div = document.createElement('div');	
+	//<div oncontextmenu="javascript:test();return false;">
+	//oncontextmenu_div.id="contextmenu";
+			
+	if(cont_type == "httpd/directory")
+	{
+		var td2_div = document.createElement('div');
+		td2_div.className ='enterFile2';
+		var td2_div2 = document.createElement('div');			
+		td2_div2.className = 'enterFile';
+		td2_div2.setAttribute("onclick", "EnterDir(\""+ fileName + "\")");		
+		type_img.setAttribute("src", "/images/folder.png");
+		td2_div2.appendChild(type_img);
+		
+		var td2_div3 = document.createElement('div');			
+		//bindEvent(td2_div3 , "contextmenu" , ContextMenu);	
+		//td2_div3.appendChild(oncontextmenu_div);
+	
+		td2_div3.id = fileName;
+		td2_div3.className = 'enterFile';	
+		td2_div3.setAttribute("onclick", "EnterDir(\""+ fileName + "\")");				
+		if(fileName.length > splitLen)
+		{
+		    var td2_label = document.createElement('label');
+		    td2_label.style.display = "inline-block";
+		    td2_label.innerHTML = splitFileName(fileName);
+		    td2_div3.appendChild(td2_label);
+		}else
+		{ 
+		    td2_div3.appendChild(document.createTextNode(fileName));
+		}				
+		td2_div.appendChild(td2_div2);
+		td2_div.appendChild(td2_div3);
+		td2.appendChild(td2_div);
+	}
+	else
+	{			
+		type_img.setAttribute("src", "/images/file.png");
+		td2.appendChild(type_img);		
+		var td2_div3 = document.createElement('div');	
+		td2_div3.id = fileName;
+		td2_div3.style.display = "inline-block";
+		if(fileName.length > splitLen) 
+	        { 
+		    var td2_label = document.createElement('label');
+		    td2_label.style.display = "inline-block";
+		    td2_label.innerHTML = splitFileName(fileName); 
+		    td2_div3.appendChild(td2_label);					
+		    td2.appendChild(td2_label);
+		    }else
+	        {
+		        td2_div3.appendChild(document.createTextNode(fileName));
+	        }
+	        td2.appendChild(td2_div3);
+	}
+							
+	var td3 = document.createElement("td");
+	td3.appendChild(document.createTextNode(fileSize));
+	if(fileSize != '-')
+		td3.style.textAlign="right";
+	else
+		td3.style.textAlign="center";
+		
+	td3.style.fontSize="12px";
+
+	
+	if(ismobile == 0)
+	{	
+		var td4 = document.createElement("td");
+		td4.style.textAlign="center";	
+	
+		var img_cut = document.createElement("img");			
+		var img_copy = document.createElement("img");
+		var img_move = document.createElement("img");
+		
+		var tdCut_div = document.createElement('div');
+		tdCut_div.setAttribute("style", "margin-left:8px;display: inline-block");
+		
+		var tdCopy_div = document.createElement('div');
+		tdCopy_div.setAttribute("style", "margin-left:8px;display: inline-block");	
+		
+		var tdMove_div = document.createElement('div');
+		tdMove_div.setAttribute("style", "margin-left:8px;display: inline-block");	
+		
+		if(cont_type != "httpd/directory")
+		{
+			var img_download = document.createElement("img");
+			//downloadAction()
+			img_download.setAttribute("src", "/images/downloading-updates.png");
+			img_download.setAttribute("title", "Download File");
+			img_download.setAttribute("style", "cursor:pointer");
+			img_download.setAttribute("onclick", "downloadAction(\""+ fileName + "\")");
+			td4.appendChild(img_download);
+			img_cut.setAttribute("title", "Cut File");
+			img_copy.setAttribute("title", "Copy File");
+			img_move.setAttribute("title", "Rename File");
+		}
+		else
+		{
+			img_cut.setAttribute("title", "Cut Folder");
+			img_copy.setAttribute("title", "Copy Folder");
+			img_move.setAttribute("title", "Rename Folder");
+		}
+				
+		img_cut.setAttribute("src", "/images/cut.png");			
+		img_cut.setAttribute("style", "cursor:pointer");
+		img_cut.setAttribute("onclick", "cutOrCopyAction(1,\""+ fileNameAndType + "\")");
+		td4.appendChild(tdCut_div);
+		td4.appendChild(img_cut);	
+		
+		img_copy.setAttribute("src", "/images/copy.png");			
+		img_copy.setAttribute("style", "cursor:pointer");
+		img_copy.setAttribute("onclick", "cutOrCopyAction(0,\""+ fileNameAndType + "\")");
+		td4.appendChild(tdCopy_div);
+		td4.appendChild(img_copy);		
+		
+		img_move.setAttribute("src", "/images/rename.png");			
+		img_move.setAttribute("style", "cursor:pointer");
+		img_move.setAttribute("onclick", "MoveAction(\""+ fileNameAndType + "\")");
+		td4.appendChild(tdMove_div);
+		td4.appendChild(img_move);	
+	}
+	
+	new_row.appendChild( td1 );
+	new_row.appendChild( td2 );
+	new_row.appendChild( td3 );
+	if(ismobile == 0)
+		new_row.appendChild( td4 );
+	
+	fileData.push(fileNameAndType);
+
+	if(isIncluded == 1)
+	{	
+		keepSelectAction(pasteName);
+	}	
+}
+
+function load_sd_list()
+{	
+    var start_idx = 0;
+	fileSelectData = [];
+	fileData = [];
+	
+	var end_idx = MAX_DAT_PER_PAGE*(first_page - current_page+1)-1;
+	var zero_len = 0;	
+	for(var i = 0; i < x_data.length; i++)
+	{
+		var href = my_getElementsByTagName(x_data[i], "href");
+		if(href[0].childNodes[0].nodeValue == "%a0")
+		{
+			zero_len=zero_len+1;
+		}
+	}
+	
+	if(current_page == 1)
+	{
+		if(1 == first_page)
+		{
+			end_idx = (x_data.length - zero_len)-1;
+		}
+		else
+		{
+			start_idx = MAX_DAT_PER_PAGE*(first_page - current_page); 
+			end_idx = (x_data.length - zero_len) -1;
+		}
+	}
+	else
+	{
+		start_idx = MAX_DAT_PER_PAGE*(first_page - current_page); 
+	}
+	
+    clear_table();	
+    for( var i = 0; start_idx <= end_idx; ++i,++start_idx )
+    {
+		var href = my_getElementsByTagName(x_data[start_idx], "href");
+		if(href[0].childNodes[0].nodeValue != "%a0")
+        insert_sd_data( x_data[ start_idx ], start_idx);
+    }
+}
+
+function next_page()
+{
+	current_page--;
+	switch_page();
+	document.getElementById('allselect').checked = false;	
+}
+
+function previous_page()
+{
+	current_page++;
+	switch_page();    
+	document.getElementById('allselect').checked = false;	
+}
+
+function go_first_page()
+{
+	current_page = first_page;
+	switch_page();
+	document.getElementById('allselect').checked = false;	
+}
+
+function last_page()
+{
+	current_page = 1;
+	switch_page();
+	document.getElementById('allselect').checked = false;	
+}
+
+function switch_page()
+{
+    if(current_page == 1)//last page
+    {
+		var page_value = 'Page '+first_page;		
+        document.getElementById("change_page").innerHTML = "<a href='#' onclick='go_first_page();' style='cursor: pointer;'><img src='/images/first.png' title='First page'></a><a href='#' onclick='previous_page();' style='cursor: pointer;margin-left:9.5px;margin-right:10px;'><img src='/images/previous.png' title='Previous page'></a>"+page_value+"<img src='/images/next_gray.png' style='margin-left:10px;'><img src='/images/last_gray.png' style='margin-left:10px;'>";
+      
+    }else if(current_page == first_page)//first page
+    {
+        document.getElementById("change_page").innerHTML = "<img src='/images/first_gray.png'><img src='/images/previous_gray.png' style='margin-left:10px;margin-right:10px;'>Page 1<a href='#' onclick='next_page();' style='cursor: pointer;margin-left:10px;'><img src='/images/next.png' title='Next page'></a><a href='#' onclick='last_page();' style='cursor: pointer;margin-left:10px;'><img src='/images/last.png' title='Last page'></a>";
+    }
+	else//other current_page
+	{
+		var page_value = 'Page '+(first_page - current_page+1);
+		document.getElementById("change_page").innerHTML = "<a href='#' onclick='go_first_page();' style='cursor: pointer;'><img src='/images/first.png' title='First page'></a><a href='#' onclick='previous_page();' style='cursor: pointer;margin-left:10px;margin-right:10px;'><img src='/images/previous.png' title='Previous page'></a>"+page_value+"<a href='#' onclick='next_page();' style='cursor: pointer;margin-left:10px;'><img src='/images/next.png' title='Next page'></a><a href='#' onclick='last_page();' style='cursor: pointer;margin-left:10px;'><img src='/images/last.png' title='Last page'></a>";
+	}
+	
+	load_sd_list();
+}
+
+function sd_query_propfind_cb(status, xml_data)
+{
+    //alert("sd_query_propfind_cb: status = " + status);
+    //alert(data);
+    if( status == -1 )
+    {
+        document.getElementById("options_state").innerHTML = 'Status: Webdav operation error!';
+        return;
+    }
+
+	x_data=[];
+	first_page = 1;	
+    clear_table();    
+
+    x_data = my_getElementsByTagName(xml_data, "response");
+    if(0 == x_data.length)
+      return;
+	var zero_len = 0;	
+	for(var i = 0; i < x_data.length; i++)
+	{
+		var href = my_getElementsByTagName(x_data[i], "href");
+		if(href[0].childNodes[0].nodeValue == "%a0")
+		{
+			zero_len=zero_len+1;
+		}
+	}
+	
+	current_page=Math.ceil((x_data.length - zero_len)/MAX_DAT_PER_PAGE);	
+    first_page = current_page;
+	
+    if(x_data.length > MAX_DAT_PER_PAGE)
+    {		
+        document.getElementById("change_page").innerHTML = "<img src='/images/first_gray.png'><img src='/images/previous_gray.png' style='margin-left:10px;margin-right:10px;'>Page 1<a href='#' onclick='next_page();' style='cursor: pointer;margin-left:10px;'><img src='/images/next.png' title='Next page'></a><a href='#' onclick='last_page();' style='cursor: pointer;margin-left:10px;'><img src='/images/last.png' title='Last page'></a>";
+    }else
+    {
+        document.getElementById("change_page").innerHTML = "";
+    }
+	
+	load_sd_list();
+}
+
+function select_all(checked)
+{
+	var webdav_table = document.getElementById("webdav_table");
+	fileSelectData =[];
+	
+	for(var i = 0; i <webdav_table.rows.length-1;i++)
+	{
+		 var now_page = (first_page - current_page)*MAX_DAT_PER_PAGE+i;
+		 var id = "cbid"+now_page;
+		
+		 if(checked == true)
+		 {
+			document.getElementById(id).checked = true;			
+			fileSelectData.push(fileData[i]);
+		 }
+		 else
+		 {			
+			document.getElementById(id).checked = false;
+		 }
+	}
+}
+
+function PROPFIND(update)
+{
+    if(update == 1)
+	{
+		pre_path.push(current_path);
+		current_path = enterDirName;		
+	}
+	else if(update == 2)
+	{
+		current_path = webdav_rootpath;
+	}
+	else if(update == 3)
+	{
+		var index = pre_path.length;
+		if(index > 1)
+		{
+			current_path = pre_path[index-1];			
+			pre_path.splice(index-1, 1);	
+		}
+		else
+		{
+			current_path = webdav_rootpath;
+		}	
+	}
+	
+	document.getElementById("pathValue").innerHTML = 'Directory: '+current_path.replace('/webdav','')+'/';
+	WebDav_PROPFIND(current_path+'/', sd_query_propfind_cb);
+	var index = pre_path.length;	
+	if(index > 1)
+	{
+		var folder = pre_path[index-1].split('/');
+		index = folder.length;		
+		if(index >  2)
+			document.getElementById("back_title").title = 'Back to '+folder[index-1];
+		else
+			document.getElementById("back_title").title = 'Back to Home';
+		
+	}
+	else
+	{
+		document.getElementById("back_title").title = 'Back to Home';
+	}
+}
+
+
+function sd_query_request()
+{
+    WebDav_SendOptions("OPTIONS",sd_query_options_cb, current_path);
+}
+function initSwipe(focus)
+{
+    new Swipe(document.getElementById(focus), null, function(event, direction) {
+    	switch (direction) {
+    		case "left": 
+				if(current_page != 1)
+					next_page();
+    			break;
+    		case "right":
+    			if(current_page != first_page)//first page
+					previous_page();
+    			break;
+    	}
+    });
+}
+
+function SelectEntry(nameAndType, i)
+{
+	 var id = "cbid"+i;	
+	 
+	 if(document.getElementById(id).checked == true)
+	 {		
+		fileSelectData.push(nameAndType);
+		if((ismobile == 1 )&&fileSelectData.length == 1)
+		{
+			var res = nameAndType.split(":");
+			var disabledAction = false;
+			if(res[1] == 1)
+				disabledAction = true;
+				
+			var clickedDownload = function() {downloadAction(res[0]); }
+			var clickedCut = function() { cutOrCopyAction(1, nameAndType); }
+			var clickedCopy = function()  { cutOrCopyAction(0, nameAndType); }
+			var clickedRename = function() { MoveAction(nameAndType);}
+			
+			var items = [
+				{ title: 'Download', icon: 'img src="/images/downloading-updates.png" alt="Download" title="Download" style="padding-right:10px"', fn: clickedDownload, disabled: disabledAction},
+				{ title: 'Cut', icon: 'img src="/images/cut.png" alt="Cut" title="Cut" style="padding-right:10px"', fn: clickedCut },
+				{ title: 'Copy', icon: 'img src="/images/copy.png" alt="Copy" title="Copy" style="padding-right:10px"', fn: clickedCopy },
+				{ title: 'Rename', icon: 'img src="/images/rename.png" alt="Rename" title="Rename" style="padding-right:10px"', fn: clickedRename}
+			]
+
+			basicContext.show(items, event);
+		}
+	 }
+	 else
+	 {
+		var index = fileSelectData.indexOf(nameAndType);
+		fileSelectData.splice(index, 1);
+	 }
+}
+
+function update_content()
+{
+	var diskMode = "~~SDCardMode~";
+	if(diskMode != "wifi")
+	{
+		document.getElementById('sdFile').style.display = 'none';
+		document.getElementById('isNotWifiDisk').style.display = 'block';		
+		return;
+	}		
+
+    var screen_width = 60;
+    
+    if(ismobile == 1)        
+    {
+	    screen_width = 100-(25000/screen.width)-7;
+
+        document.getElementById("ltName").style.width = "70%";
+        document.getElementById("ltSize").style.width = "20%";
+        var mAction = document.getElementById("ltAction");
+        mAction.parentNode.removeChild(mAction);
+
+	    var anchors = document.getElementById("actions").childNodes;
+	    for(var i=0; i<anchors.length; i++)
+	    {
+            if(anchors[i].tagName == 'A' || anchors[i].id == 'upload')
+            { 
+                 anchors[i].style.marginLeft = "2px";
+            }    
+        }
+        initSwipe('webdav_table');
+    } 
+    document.getElementById("leftbutton").style.marginLeft = screen_width+"%";
+    sd_query_request();
+}
+
+function enterpressform(e)
+{
+	var code = (e.keyCode ? e.keyCode : e.which);
+	if(code == 13) 
+	{
+		e.preventDefault();
+		if(document.getElementById('uploadOK').style.display != "none")
+		{
+			Confirm();
+		}		
+		else if(document.getElementById('addfolder').style.display != "none")
+		{
+			addfolder();
+		}
+		else  if(document.getElementById('move').style.display != "none")
+		{		
+			RenameAction();
+		}			
+	}
+}
+</script>
+</head>
+<body onLoad="update_content();" onKeyPress="enterpressform(event)">
+<form name="myForm">
+<input type="hidden" name="RequestVerifyToken" value="~*token~">
+<div class="mainContent" id="mainContent">
+	<div class="maintitle">
+		<label id="title" class="title">Wi-Fi Disk</label>
+	</div>
+	<hr color="#D8D8D8" width="100%"> </hr>
+	<div id="Content" class="content">
+	<label id="options_state" style="display: none"></label>
+	<div id="sdFile" style="display: none">
+	<div id="actions">	
+	<a href="#." class="home" onclick="homeAction()" style="margin-left:5px">
+	<img src="/images/home.png" alt="Home" title="Wi-Fi Disk Home"></a>		
+	<a href="#." class="back" onclick="backAction()" style="margin-left:10px">
+	<img src="/images/back.png" id="back_title" alt="Back"></a>
+	<a href="#." class="format" onclick="formatActionPopup(1)" style="margin-left:10px">
+	<img src="/images/format.png" id="format_title" title="Format Disk" alt="Format Disk"></a>
+	<a href="#." class="help" onclick="openHelpUrl()" style="margin-left:10px">
+	<img src="/images/help.png" id="help_title" title="Help" alt="Help"></a>	
+	<a href="#." id="leftbutton" class="delete" onclick="deleteActionButton()">
+	<img src="/images/delete.png" alt="delete" title="Delete File"></a>
+	<a href="#." class="paste" onclick="pasteActionButton()" style="margin-left:10px">
+	<img src="/images/paste.png" alt="paste" title="Paste File"></a>		
+	<a href="#." class="addFolder" onclick="PopUpBoxWindow('AddFolder')" style="margin-left:10px">
+	<img src="/images/add-folder.png" alt="Add folder" title="Add Folder"></a>	
+	<div id="upload" class="upload-box" style="margin-left:10px" title="Upload File">
+	<input id="uploadFile" class="upload" onchange="uploadAction()" type="file" style="cursor:pointer" title="Upload File">
+	<img src="/images/upload.png" alt="Upload" title="Upload File">
+	</div>
+	</div>
+	<div id="current_path" style="margin-left:5px;display: inline-block;margin-bottom:5px;">
+	<label id="pathValue">/</label>
+	</div>	
+	<div id="change_page" style="float: right; padding-right: 1%; margin-top:10px;margin-bottom:5px;"></div>
+    <table class="example" id="webdav_table" width="100%">
+        <thead>
+        <tr>                
+            <th id="ltCheck" style="width:10%">
+		        <input type="checkbox" id="allselect" onclick="select_all(this.checked)"><label for="allselect"></label>
+		        <label style="display: inline-block;margin-top:-18px;margin-left: -5px;">All</label>
+		    </th>
+            <th id="ltName" style="width:50%">Name</th>                
+            <th id="ltSize" style="width:18%">Size</th>				  
+		    <th id="ltAction" style="height:20px;width:22%">Action</th>
+        </tr>
+        </thead> 
+    </table>
+	</div>
+	<div id="isNotWifiDisk" style="display:none">
+	<label>Please switch to "Wi-Fi Disk" mode in the "User Management" -> "Storage Management" page if you want to use Wi-Fi Disk feature.</label>
+	</div>	
+	</div>	
+</div>
+ <div id="mbox" name="mbox" class="ontop">
+	<div id="popup" class="popUpBox" >
+	<div id="addfolder" style="display:none">
+		<h2 style="margin:-20px 95%;">
+		<a href="#." class="close" onclick="btnCancel()">
+		<img src="/images/close_button.png" alt="" height="25px"></a>
+		</h2>
+		<br style="clear:both">
+		<div class="pBoxCont">
+			<br style="clear:both">
+			<label id="folderName">Folder name:</label>
+			<input id="Folder_Name" name="Folder_Name" style="width:55%;text-align:center;margin-left:-15px" type="text">
+			<br><br>
+			<div class="mboxButton" align="center">
+			<input id="btnOK_add" value="OK" onclick="addfolder()" type="button">
+			<input id="btnCancel_2" value="Cancel" onclick="btnCancel()" type="button" style="margin-left:8px">	
+			</div>
+			<br style="clear:both">
+		</div>
+	</div>
+	<div id="uploadBar" style="display:none;">
+	<div class="pBoxCont">	
+		<br style="clear:both">
+		<div id="pBarTag" style="visibility: hidden;display: none;">
+		<label id='n_fname' style="width:93%;margin-bottom:15px;"></label>
+		<div style="margin-left:23px;margin-bottom:5px;margin-bottom:5px;">
+		<progress id="progressBar" value="0" max="100" style="width:90%;margin-right:15px">
+		<span>0</span>%</progress>&nbsp;<span id='n_per'>0%</span>
+		</div>
+		<div id="uploadOK" name="uploadOK" class="mboxButton" style="display:none;margin-top:-10px;margin-left:33%;">
+		<input id="Confirm_upload" name="Confirm_upload" value="OK" onclick="Confirm()" type="button">
+		</div>
+		<br style="clear:both">
+		</div>		
+	</div>
+	</div>	
+	<div id="move" style="display:none">
+		<h2 style="margin:-20px 95%;">
+		<a href="#." class="close" onclick="btnCancel()">
+		<img src="/images/close_button.png" alt="" height="25px"></a>
+		</h2>
+		<br style="clear:both">
+		<div class="pBoxCont">
+			<br style="clear:both">
+			<label id="lRename"></label>
+			<input id="Rename" name="Rename" style="width:55%;text-align:center;margin-left:-15px" type="text">
+			<br><br>
+			<div class="mboxButton" align="center">
+			<input value="OK" onclick="RenameAction()" type="button">
+			<input value="Cancel" onclick="btnCancel()" type="button" style="margin-left:8px">	
+			</div>
+			<br style="clear:both">
+		</div>
+	</div>	
+	</div>
+</div>
+</form>
+</body>
+</html>

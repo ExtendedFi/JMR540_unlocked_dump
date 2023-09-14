@@ -1,0 +1,123 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>PIN management</title>
+<meta http-equiv="Content-Type" content="text/html; charset=big5">
+<link href="/css/stylesheet.css" rel="stylesheet" type="text/css" />
+
+<script language="JavaScript">
+
+</script>
+</head>
+
+<body class="StatusBody"> 
+<form name="myForm" method="post" action="">
+<div class="mainColumn" id="mainColumn">
+<div id="Content" class="content">
+<a href="#">&nbsp;</a>
+  <label id="title" class="title">Configuration Backup</label>
+<br>
+<div class="popUpBox" id="MBRebooting" style="display: none">
+    <h1 id="h1Rebooting">Rebooting...</h1>
+    <a class="close">&nbsp;</a><br style="clear:both">
+    <div align="center">
+        <label id="lRebootingText">The device will now reboot.</label>
+    </div>
+     
+     <div align="center">
+        <label id="lRebootingText1">The new configuration will take effect after rebooting.</label>
+    </div>
+    
+</div>
+
+
+<div class="popUpBox" id="MBConfirm" style="display: none">
+ <form enctype="multipart/form-data" id="uploadConfigFileForm" method="post">
+    <h1 id="h1Confirm"></h1>
+    <a class="close">&nbsp;</a><br style="clear:both">
+    <div align="center">
+        <label id="lConfirmText">The existing settings will be lost. Continue?</label>
+    </div>   
+  
+    <div class="bottonRow1" style="border-top:1px solid #a7a7a7; padding:7px 0; margin:7px 0 0 0; text-align:right">
+         <a href="#." id="btnModalCancle" onclick="hm()" class="cancel"></a>
+         <span class="btnWrp"> <button onclick="confManagementConfirmed()" value="OK" id="btnModalOk1"></button></span> &nbsp;&nbsp;
+       
+     </div>
+ </form>
+</div>
+<div class="popUpBox" id="MBConfirmFactory" style="display: none">
+    <h1 id="h1Confirm"></h1>
+    <a class="close" style="width: 40px;">&nbsp;</a><br style="clear:both">
+    <div align="center">
+        <label id="lConfirmText1">Are you sure you want to restore to factory setting?</label>
+    </div>
+
+     <div class="bottonRow1" style="border-top:1px solid #a7a7a7; padding:7px 0; margin:7px 0 0 0; text-align:right">
+            <a href="#." id="btnModalCancle" onclick="hm()" class="cancel"></a>
+            <span class="btnWrp"> <button onclick="confFactoryConfirmed()" value="OK" id="btnModalOk"></button></span>
+            
+     </div>
+
+</div>
+
+<!--Foxconn dongmei add start for pop-up message 20150203-->
+<div class="popUpBox" id="MBConfirmReboot" style="display: none">
+    <h1 id="h1Confirm"></h1>
+    <a class="close"></a><br style="clear:both">
+    <div align="center">
+        <label id="lRebootingText2">If you want to update configuration file,you need to reboot the router.Are you sure to reboot the router?</label>
+    </div>
+
+     <div class="bottonRow1" style="border-top:1px solid #a7a7a7; padding:7px 0; margin:7px 0 0 0; text-align:right">
+            <a href="#." id="btnModalCancle" onclick="hm()" class="cancel"></a>
+            <span class="btnWrp"> <button onclick="UpdateCfgFile()" value="OK" id="btnModalOk"></button></span>
+            
+     </div>
+
+</div>
+<!--Foxconn dongmei add end for pop-up message 20150203-->
+<!--Masked start by Bruce-->
+
+<form enctype="multipart/form-data" id="uploadFileForm" method="post" name="SoftFileUpload">
+<div class="formBox">
+    <label id="lImportCfgFileText1" class="subttl">Please choose configuration file(*.bin) to update.</label>
+     <label id="lImportCfgFileText2" class="subttl">Please make sure you connect to MyFi using USB cable before upgrade.</label>
+    <label id="lImportCfgFileText3" class="subttl">Device will reboot after update configuration file.</label>
+    <div class="file-box" style="width: 550px;">
+        <input id="updateCfgFile" class="file" name="config_backup.bin" onchange="onChangeCfgFile()" type="file">
+        <input id="txtCfgFileName" class="txt" type="text">
+        <input class="btnWrn" value="Browse" id="btnBrowserFile" type="button">
+        <span style="display: none;color:red;" id="lFileFormatError">File format error,please choose .bin file.</span>
+    </div>
+    <br class="clear">
+    <div align="right">
+        <span class="btnWrp ">  
+            <input id="btnSubmitCnfFile" style="display: none" type="submit">
+            <input id="btnUpdate" value="Update" onclick="ConfirmUpdateCfgFile()" type="button"></span>
+    </div>
+</div>
+
+<!--Masked end by Bruce-->
+
+<div class="formBox">
+    <label id="lEmportCfgFileText" class="subttl">Click below link to export configuration file.</label> 
+    <a target="_blank" id="lExportLink" style="color:blue;cursor: pointer;" onclick="saveConfigurationExport()">Export configuration file.</a><!--According MiFi-1 Removed by FXN Young 2015.03.26-->
+</div>
+
+
+<div id="ACATSDlog_Setting_div" class="formBox" style="display: none">
+    <label id="lSaveAcatDumplogSetting">Save Acatlog to SD Settings</label>
+    <label id="lSdFormatSupportStatus" style="display:inline;">SD Format Support Status:</label><em id="txtSdFormatStatus">No SD Card</em><br><br>
+    <input disabled="disabled" id="saveacatlogchk" style="margin-right:8px" type="checkbox">
+    <span id="lSaveAcatDumplogIntoSDText">This option will  require user to set save acat dump log to SD card or not, This log is for debug usage.</span>
+    <div align="right"><span class="btnWrp"><input id="btnSaveAcatDumplogSettings" value="Save" onclick="SaveAcatDumplogSetting()" type="button"></span> </div>
+</div>
+
+
+</form>
+<iframe id="rfFrame" name="rfFrame" src="mConfBakSub_files/a.htm" style="display:none;"></iframe> 
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,323 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>WiFi Configuration</title>
+<meta http-equiv="Content-Type" content="text/html; charset=big5">
+<link href="/css/stylesheet.css" rel="stylesheet" type="text/css" />
+<script language="JavaScript" src="/js/validate.js"></script>
+<script language="JavaScript" src="/js/common.js"></script>
+<script language="JavaScript" src="/js/message.js"></script>
+<script language="JavaScript" src="/js/swipe.js"></script>
+<script language="JavaScript">
+function validate_all()
+{
+	if(document.getElementById("AP_ENABLE").checked == true)
+	{
+		var AP_SSID = document.getElementById("AP_SSID");
+		if( checkEmpty( AP_SSID ) || AP_SSID.value.length > 32)
+		{
+			document.getElementById("lPassErrorMesPN").innerHTML = arrayMsg[57]
+			document.getElementById("lPassErrorMesPN").style.display = "block";	
+			return false;
+		}
+
+		var AP_SECMODE = document.getElementById("AP_SECMODE");
+		var secMode_index = AP_SECMODE.selectedIndex;
+
+		if(AP_SECMODE.options[secMode_index].value == "No authentication")
+		{
+			if ( confirm ("Wireless security is disabled and all wireless client can connect to this MyFi device. \n\nAre you sure you want to do this?") == false)
+			{
+				return false;	
+			}
+		}
+		else if(AP_SECMODE.options[secMode_index].value != "No authentication")
+		{
+			var key = document.getElementById("WPA_PSK_KEY").value;
+
+			if(key.length < 8)
+			{
+				//alert("The length of password must be over 8.");
+				document.getElementById("lPassErrorMesPN").innerHTML = "The length of password must be over 8."	
+				document.getElementById("lPassErrorMesPN").style.display = "block";				
+				return false;
+			}
+			else if(key.length == 64)
+			{
+				if(!isHexStr(key))
+				{
+					//alert("The length of password is 64 and the key must be hexadecimal string.");
+					document.getElementById("lPassErrorMesPN").innerHTML = "The length of password is 64 and the key must be hexadecimal string.";
+					document.getElementById("lPassErrorMesPN").style.display = "block";			
+					return false;
+				}		
+			}
+			else if(key.length > 64)
+			{
+				//alert("The maximum length of password is 64.");
+				document.getElementById("lPassErrorMesPN").innerHTML = "The maximum length of password is 64.";	
+				document.getElementById("lPassErrorMesPN").style.display = "block";
+				return false;	
+			}		
+		}
+
+		var pmm_timer_enable = document.getElementById("PMM_SUSPEND_SYSTEM_TIMER_ENABLE");
+		if(pmm_timer_enable.checked)
+			pmm_timer_enable.value = 1;
+		else
+			pmm_timer_enable.value = 0;	
+	}
+
+
+	if ( confirm ("Changing Wi-Fi settings will cause Wi-Fi connection to be disconnected in order to make "+
+	"Wi-Fi settings effective. \n\nAre you sure to change Wi-Fi settings now?") == false)
+	{
+		return false;	
+	}
+	
+	document.forms["myForm"].submit();
+	setTimeout("redirect(\"/cgi-bin/en-jio/mWiFi_Config_InProgress.html\")", 300);
+}
+
+function enabledSleepMode()
+{
+	if(document.getElementById("PMM_SUSPEND_SYSTEM_TIMER_ENABLE").checked)
+		document.getElementById("lPMM_SUSPEND_SYSTEM_TIMER").style.display="block";
+	else
+		document.getElementById("lPMM_SUSPEND_SYSTEM_TIMER").style.display="none";
+}
+
+function hiddenPassword()
+{
+	var password_text = document.createElement('input');
+	if(document.getElementById("hidden").checked)
+		password_text.type = 'password'
+	else
+		password_text.type = 'text'
+	var text = document.getElementById("WPA_PSK_KEY");
+	password_text.id = text.id;
+	password_text.value = text.value;
+	password_text.name = text.name;
+	password_text.setAttribute( "autocomplete", "off" );
+	/*password_text.className ="textfield";*/
+	password_text.maxLength = "64";
+	text.parentNode.replaceChild(password_text, text);
+}
+
+function change_authentication(authentication)
+{
+	var AP_CHMODE = document.getElementById("AP_CHMODE");
+	var AP_CYPHER = document.getElementById("AP_CYPHER");	
+	document.getElementById("wap_encryption").style.display = "none";
+
+	switch(authentication.value)
+	{        
+		case "WPA-PSK": 		
+		case "WPA2-PSK":		
+		case "WPA-PSK/WPA2-PSK":		
+		document.getElementById("wap_encryption").style.display = "block";     	
+		case "No authentication":		
+		if(AP_CHMODE.options[0].value != "b+g+n")
+		{
+			var option_bgn = document.createElement("option");
+			option_bgn.text = "802.11n(b/g compatible)";
+			option_bgn.value = "b+g+n";
+			AP_CHMODE.add(option_bgn,0);
+			var option_n = document.createElement("option");
+			option_n.text = "802.11 n only";
+			option_n.value = "n";
+			AP_CHMODE.add(option_n,3);
+		}		
+		break;
+	}
+
+	return true;
+}
+
+function EnabledWiFi()
+{
+	if(document.getElementById("AP_ENABLE").checked == false)
+		document.getElementById("mainWiFiFrame").style.display = "none";
+	else
+		document.getElementById("mainWiFiFrame").style.display = "block";	
+}
+
+function update_content()
+{
+	var msg = "~*PRE_MSG~";		
+	if(msg != "")
+	{
+		document.getElementById("lPassErrorMesPN").innerHTML = arrayMsg[msg];		
+		document.getElementById("lPassErrorMesPN").style.display = "block";	
+	}
+	// Get AP_CHMODE_INDEX initial value
+	/* 	0, nbg;	1,b;	2,g;	3,n */
+	var AP_CHMODE = document.getElementById("AP_CHMODE");
+	var AP_CHMODE_value = AP_CHMODE[AP_CHMODE.selectedIndex].value;
+	var AP_SECMODE = document.getElementById("AP_SECMODE");	
+	var AP_SECMODE_value = AP_SECMODE[AP_SECMODE.selectedIndex].value;
+	var AP_CYPHER = document.getElementById("AP_CYPHER");
+	var WPA_PSK_KEY = document.getElementById("WPA_PSK_KEY");
+	var AP_SSID = document.getElementById("AP_SSID");
+
+	if((AP_SECMODE_value == "No authentication"))
+	{
+		document.getElementById("wap_encryption").style.display = "none";				
+	}
+	else
+	{  
+  	    if(WPA_PSK_KEY.value == "")
+		{
+			var psk_key = "~*PSK_KEY~";
+			WPA_PSK_KEY.value=psk_key;
+		}
+	}
+
+	var ssid = "~~AP_SSID~";	
+	AP_SSID.value=replaceSpecialString(ssid);
+
+	var wifi_enable = "~*AP_ENABLE~";
+
+	if(wifi_enable == "0")
+		document.getElementById("mainWiFiFrame").style.display = "none";
+	else
+		document.getElementById("mainWiFiFrame").style.display = "block";
+
+	var suspend_system_timer = "~*PMM_SUSPEND_SYSTEM_TIMER_ENABLE~";
+
+	if(suspend_system_timer == "1")
+		document.getElementById("lPMM_SUSPEND_SYSTEM_TIMER").style.display="block";
+	else
+		document.getElementById("lPMM_SUSPEND_SYSTEM_TIMER").style.display="none";		
+
+	if(screen.width < 424)
+	{	    
+		var br1 = document.createElement("br");
+		var br2 = document.createElement("br");
+		var br3 = document.createElement("br");
+		var wifiStatus = document.getElementById("wifiStatus");
+		var wifissid = document.getElementById("wifissid");
+		var wifiHiden = document.getElementById("wifiHiden");
+		wifiStatus.appendChild(br1);
+		wifissid.appendChild(br2);
+		wifiHiden.appendChild(br3);
+	}
+
+	leftSwipe("mainContent", "network", null);
+}
+</script>
+</head>
+
+<body onLoad="update_content();" >
+	<form name="myForm" method="post" action="/cgi-bin/en-jio/mWiFi_Config_Apply.html">
+		<input type="hidden" name="RequestVerifyToken" value="~*token~">
+		<div class="mainContent" id="mainContent">
+			<div class="maintitle">
+				<label id="title" class="title">Wi-Fi Configuration</label>
+			</div>
+			<hr color="#D8D8D8" size="1px" width="100%"> </hr>
+			<div id="Content" class="content">		
+				<div id="WiFiSetting">
+					<div id="nwRadiovisi" class="inlineDiv" onclick="EnabledWiFi()">					
+						<label id="lNwVisiStatus" class="subttl">Status:</label><span id="wifiStatus"></span>
+						<input type="radio" name="AP_ENABLE" id="AP_ENABLE" ~cAP_ENABLE:1:1~ value="1"><label for="AP_ENABLE">Enabled</label>
+						<input type="radio" name="AP_ENABLE" id="AP_ENABLE_DISABLED" ~cAP_ENABLE:0:1~ value="0"><label for="AP_ENABLE_DISABLED">Disabled</label>				
+					</div>
+					<div id="mainWiFiFrame" style="display: none">
+						<div id="nwSSID" class="inlineDiv">
+							<label id="lSSID" class="subttl">Network Name (SSID):</label><span id="wifissid"></span>
+							<input name="AP_SSID" id="AP_SSID" maxlength="32" style="padding-left:5px;" type="text">
+						</div>
+						<div id="nwVisibility" class="inlineDiv">
+							<label id="lNwVisiStatus"  class="subttl">SSID Broadcast:</label><span id="wifiHiden"></span>
+							<input type="radio" name="AP_HIDE" id="AP_HIDE" ~cAP_HIDE:0:0~ value="0"><label for="AP_HIDE">Enabled</label>
+							<input type="radio" name="AP_HIDE" id="AP_HIDE_DISABLED"~cAP_HIDE:1:0~ value="1"><label for="AP_HIDE_DISABLED">Disabled</label>				
+						</div>			
+						<div id="80211_mode_div" class="inlineDiv">	
+							<label id="l80211_mode"  class="subttl">802.11 Mode:</label>
+							<select name="AP_CHMODE" id="AP_CHMODE">
+							<option value="b+g+n" ~sAP_CHMODE:b+g+n:b+g+n~>802.11n(b/g compatible)</option>
+							<option value="b" ~sAP_CHMODE:b:b+g+n~>802.11 b only</option>
+							<option value="g" ~sAP_CHMODE:g:b+g+n~>802.11 g only</option>
+							<option value="n" ~sAP_CHMODE:n:b+g+n~>802.11 n only</option>
+							</select>	
+						</div>
+						<div id="nwChannel" class="inlineDiv">
+							<label id="lChannel"  class="subttl">Channel:</label>
+							<select name="AP_PRIMARY_CH" id="AP_PRIMARY_CH">
+							<option value="0" ~sAP_PRIMARY_CH:0:0~>Automatic</option>
+							<option value="1" ~sAP_PRIMARY_CH:1:0~>CH 1 - 2412 MHz</option>
+							<option value="2" ~sAP_PRIMARY_CH:2:0~>CH 2 - 2417 MHz</option>
+							<option value="3" ~sAP_PRIMARY_CH:3:0~>CH 3 - 2422 MHz</option>
+							<option value="4" ~sAP_PRIMARY_CH:4:0~>CH 4 - 2427 MHz</option>
+							<option value="5" ~sAP_PRIMARY_CH:5:0~>CH 5 - 2432 MHz</option>
+							<option value="6" ~sAP_PRIMARY_CH:6:0~>CH 6 - 2437 MHz</option>
+							<option value="7" ~sAP_PRIMARY_CH:7:0~>CH 7 - 2442 MHz</option>
+							<option value="8" ~sAP_PRIMARY_CH:8:0~>CH 8 - 2447 MHz</option>
+							<option value="9" ~sAP_PRIMARY_CH:9:0~>CH 9 - 2452 MHz</option>
+							<option value="10" ~sAP_PRIMARY_CH:10:0~>CH 10 - 2457 MHz</option>
+							<option value="11" ~sAP_PRIMARY_CH:11:0~>CH 11 - 2462 MHz</option>
+							</select>
+						</div>
+						<div id="neWMM" class="inlineDiv">
+							<label id="wmm_mode"  class="subttl">WMM Status:</label>
+							<select name="CWMPAP1WMMENABLE" id="CWMPAP1WMMENABLE" class="grayinput12">
+							<option value="1" ~sCWMPAP1WMMENABLE:1:0~>Enabled</option>
+							<option value="0" ~sCWMPAP1WMMENABLE:0:0~>Disabled</option>			
+							</select>
+						</div>		
+
+						<div id="nwsleepmode">
+							<div id="nwSSID" class="inlineDiv">
+								<label id="sleep_mode" class="subttl">Sleep Mode:</label>			
+								<input name="PMM_SUSPEND_SYSTEM_TIMER_ENABLE" id="PMM_SUSPEND_SYSTEM_TIMER_ENABLE" type="checkbox" onclick="enabledSleepMode()" ~cPMM_SUSPEND_SYSTEM_TIMER_ENABLE:1:0~ value="~*PMM_SUSPEND_SYSTEM_TIMER_ENABLE:1:0~">
+								<label for="PMM_SUSPEND_SYSTEM_TIMER_ENABLE">Enabled</label>
+							</div>
+							<div id="lPMM_SUSPEND_SYSTEM_TIMER" class="inlineDiv">
+								<label id="sleep_mode"  class="subttl">Sleep Mode Timer:</label>
+								<select name="PMM_SUSPEND_SYSTEM_TIMER" id="PMM_SUSPEND_SYSTEM_TIMER">
+								<option value="10" ~sPMM_SUSPEND_SYSTEM_TIMER:10:10~>Sleep After 10 minutes</option>
+								<option value="20" ~sPMM_SUSPEND_SYSTEM_TIMER:20:10~>Sleep After 20 minutes</option>
+								<option value="30" ~sPMM_SUSPEND_SYSTEM_TIMER:30:10~>Sleep After 30 minutes</option>
+								<option value="60" ~sPMM_SUSPEND_SYSTEM_TIMER:60:10~>Sleep After 60 minutes</option>
+								</select>
+							</div>
+						</div>
+
+						<div id="nwSecurity" class="inlineDiv">	
+							<label id="lWireSecurity"  class="subttl">Wireless Security:</label>
+							<select name="AP_SECMODE" id="AP_SECMODE" onChange="change_authentication(this);">
+							<option value="No authentication" ~sAP_SECMODE:No authentication:No authentication~>Disabled</option>
+							<option value="WPA-PSK" ~sAP_SECMODE:WPA-PSK:No authentication~>WPA-PSK</option>
+							<option value="WPA2-PSK" ~sAP_SECMODE:WPA2-PSK:No authentication~>WPA2-PSK</option>
+							<option value="WPA-PSK/WPA2-PSK" ~sAP_SECMODE:WPA-PSK/WPA2-PSK:No authentication~>WPA-WPA2 Mixed</option>
+							</select>
+						</div>
+						<!--wpa-->
+						<div id="wap_encryption" class="inlineDiv">
+							<label  class="subttl">Encryption:</label>	
+							<select name="AP_CYPHER_WPA" id="AP_CYPHER_WPA" class="grayinput12">			
+							<option value="AES/TKIP" ~sAP_CYPHER:AES/TKIP:AES/TKIP~>AES/TKIP</option>
+							<option value="TKIP" ~sAP_CYPHER:TKIP:AES/TKIP~>TKIP</option>
+							<option value="AES" ~sAP_CYPHER:AES:AES/TKIP~>AES</option>		
+							</select>
+							<div id="lWpaEncryption" class="inlineDiv">		
+								<label id="lpass"  class="subttl">Password:</label>
+				<input maxlength="64" name="WPA_PSK_KEY" id="WPA_PSK_KEY" type="password" value="~*CWMPAP1SECKEYPASSPHRASE~">				
+								<input name="hidden" id="hidden" type="checkbox" onchange="hiddenPassword()" onclick="hiddenPassword()" checked>
+								<label for="hidden">hidden</label>
+							</div>
+						</div>	
+					</div>
+					<div class="formBox" id="divPrimaryNetworkFormBox" align="center">
+						<label class="error" id="lPassErrorMesPN" style="display: none"></label>
+					</div>
+					<div class="buttonStyle" align="left"  id="divSavePrimaryNetworkData">		 
+						<input id="btUpdate" value="Save" onclick="validate_all()" type="button">		
+					</div>
+				</div>				
+			</div>
+		</div>
+	</form>
+</body>
+</html>

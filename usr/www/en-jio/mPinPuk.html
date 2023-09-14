@@ -1,0 +1,320 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>PIN management</title>
+<meta http-equiv="Content-Type" content="text/html; charset=big5">
+<link href="/css/stylesheet.css" rel="stylesheet" type="text/css" />
+<link href="/css/elements.css" rel="stylesheet">
+<script language="JavaScript" src="/js/validate.js"></script>
+<script language="JavaScript" src="/js/message.js"></script>
+<script language="JavaScript" src="/js/common.js"></script>
+<script language="JavaScript" src="/js/swipe.js"></script>
+<script language="JavaScript">
+
+function EnableDisablePin()
+{
+	var old_pin = document.PinEnable.old_pin;
+
+	if (checkEmpty(old_pin)) {
+		document.getElementById("lAlertError").innerHTML = arrayMsg[2];		
+		old_pin.focus();
+		return false;
+	}
+
+	if (!checkPIN(old_pin)) {
+		document.getElementById("lAlertError").innerHTML = arrayMsg[3];		
+		old_pin.focus();
+		return false;
+	}
+	
+	var WAN_3G_PIN_SETTING = document.getElementById('WAN_3G_PIN_SETTING');
+	if(WAN_3G_PIN_SETTING.value == "1")
+		WAN_3G_PIN_SETTING.value = "0";
+	else
+		WAN_3G_PIN_SETTING.value = "1";	
+	
+	document.forms["PinEnable"].submit();
+	return true;	
+}
+
+
+function unlock_puk()
+{
+  var puk = document.getElementById("puk");
+  var puk_new_pin = document.getElementById("puk_new_pin");
+
+  if (checkEmpty(puk)) {
+	document.getElementById("lAlertError2").innerHTML = arrayMsg[44];	
+    puk.focus();
+    return false;
+  }
+  if (!checkPUK(puk)) {
+	document.getElementById("lAlertError2").innerHTML = arrayMsg[45];	
+    puk.focus();
+    return false;
+  }
+
+  if (checkEmpty(puk_new_pin)) {
+	document.getElementById("lAlertError2").innerHTML = arrayMsg[47];	
+    puk_new_pin.focus();
+    return false;
+  }
+  if (!checkPIN(puk_new_pin)) {
+	document.getElementById("lAlertError2").innerHTML = arrayMsg[3];	
+    puk_new_pin.focus();
+    return false;
+  }
+
+  document.forms["PukApply"].submit();
+  return true;
+}
+
+function unlock_pin()
+{
+  var pin = document.getElementById("pin");
+
+  if (checkEmpty(pin)) {
+    alert(arrayMsg[2]);
+    pin.focus();
+    return false;
+  }
+  if (!checkPIN(pin)) {
+    alert(arrayMsg[3]);
+    pin.focus();
+    return false;
+  }
+
+  document.forms["EnterPinForm"].submit();
+  return true;
+}
+
+function ChangePin()
+{
+  var old_pin = document.PinChange.old_pin;
+  var new_pin = document.getElementById("new_pin");
+  var validate_new_pin = document.getElementById("validate_new_pin");
+  
+  if (checkEmpty(old_pin)) 
+  {	
+  	document.getElementById("lAlertError").innerHTML = arrayMsg[46];	
+    old_pin.focus();
+    return false;
+  }
+  
+  if (!checkPIN(old_pin))
+  {	
+  	document.getElementById("lAlertError").innerHTML = arrayMsg[3];	
+    old_pin.focus();
+    return false;
+  }
+
+  if (checkEmpty(new_pin))
+  { 
+  	document.getElementById("lAlertError").innerHTML = arrayMsg[47];	
+    new_pin.focus();
+    return false;
+  }
+  if (!checkPIN(new_pin)) {
+  	document.getElementById("lAlertError").innerHTML = arrayMsg[3];	
+    new_pin.focus();
+    return false;
+  }
+
+  if (checkEmpty(validate_new_pin)) {
+  	document.getElementById("lAlertError").innerHTML = arrayMsg[48];	
+    validate_new_pin.focus();
+    return false;
+  }
+  if (!checkPIN(validate_new_pin)) {
+  	document.getElementById("lAlertError").innerHTML = arrayMsg[3];		
+    validate_new_pin.focus();
+    return false;
+  }
+
+  if (new_pin.value != validate_new_pin.value) {
+  	document.getElementById("lAlertError").innerHTML = arrayMsg[49];	
+    validate_new_pin.focus();
+    return false;
+  }
+
+  document.forms["PinChange"].submit();    
+  return true;	
+}
+
+function update_content()
+{
+	var sim_card_state = "~*sim_card_state2~";
+	
+	document.getElementById("lAlertError").innerHTML = "";	
+	document.getElementById("ChangePin").style.display = "none";
+	document.getElementById("NoSimCard").style.display = "none";
+	document.getElementById("PINCard").style.display = "none";
+	document.getElementById("PUKCard").style.display = "none";
+	document.getElementById("EnterPin").style.display = "none";
+
+	switch(sim_card_state)
+    {		
+		case "PIN Locked":
+		case "PIN2 Locked":
+		document.getElementById("PUKCard").style.display = "block";
+		var msg = "~*PRE_MSG~";
+		var tryCount = "~*puk_retry_cnt~";
+		if((msg != "") && (tryCount != "10"))
+		{
+			document.getElementById("lAlertError2").innerHTML = arrayMsg[msg];		
+		}
+		break;
+	
+		case "Inserted":
+		case "Detached":
+		case "Attached":
+		case "Attached (Roaming)":
+		document.getElementById("PINCard").style.display = "block";
+		var msg = "~*PRE_MSG~";
+		var function_enabled = document.getElementById("btDisable");
+		var pin_setting = "~*pin_state~";
+		
+		if(msg != "")
+		{
+			document.getElementById("lAlertError").innerHTML = arrayMsg[msg];		
+		}
+	
+		document.getElementById("PINCard").style.display = "block";	
+		document.getElementById("ChangePin").style.display = "none";	
+		
+		if(pin_setting == "1")
+		{		
+			function_enabled.value = "Disable PIN";	
+			//document.getElementById("lPinTitle").innerHTML="Disable PIN";
+			document.getElementById("ChangePin").style.display = "block";	
+		}
+		else
+		{
+			function_enabled.value = "Enable PIN";
+			//document.getElementById("lPinTitle").innerHTML="Enable PIN";
+			document.getElementById("ChangePin").style.display = "none";	
+		}			
+		break;
+		
+		case "Enter PIN":
+		case "Enter PIN2":
+		document.getElementById("EnterPin").style.display = "block";	
+		break;
+
+		case "PUK Locked":
+		{
+			var msg = "~*PRE_MSG~";
+			if(msg != '')
+				document.getElementById("lAlertMessage").innerHTML=arrayMsg[msg];
+			else
+				document.getElementById("lAlertMessage").innerHTML=arrayMsg[201];
+		}
+		default:
+		document.getElementById("NoSimCard").style.display = "block";
+		break;
+	}		
+
+	leftSwipe("mainContent", "network", null);
+}
+</script>
+</head>
+
+<body onLoad="update_content();"> 
+<div class="mainContent" id="mainContent">
+<div class="maintitle">
+<label id="title" class="title">PIN Management</label>
+</div>
+<hr color="#D8D8D8" size="1px" width="100%"> </hr>
+<div id="Content" class="content">
+   <div id="NoSimCard"  style="display: none">
+       <label id="lAlertMessage" class="lable12">No SIM present or invalid SIM</label>
+   </div>   
+	<div id="PINCard" style="display: none">
+		<form name="PinEnable" method="post" action="/cgi-bin/en-jio/mPin_Apply.html">
+		<label id="pRemAttemps" class="subtt2">Remaining attempts:</label>~*pin_retry_cnt~		
+			<div class="pBoxCont">
+			<label id="lAlertError" class="error"></label></div>
+			<input type="hidden" name="RequestVerifyToken" value="~*token~">
+			<div style="padding-bottom:12px">
+			<input type="hidden" name="WAN_3G_PIN_SETTING" id="WAN_3G_PIN_SETTING" value="~*pin_state~">
+			</div>
+			<div id="EnableDisable">			
+			<label id="lPinTitle" class="subttl">PIN:</label>			
+			<input type="password" name="old_pin" id="old_pin" maxLength="8">
+			<br style="clear:both">
+			<div class="buttonStyle" id="divSaveButton" align="left">
+			<input id="btDisable" value="" onclick="EnableDisablePin()" type="button">
+			</div>				
+			<br style="clear:both">
+			<br style="clear:both">
+			</div>
+		</form>
+		
+		<div id="ChangePin" style="display: none">
+			<form name="PinChange" method="post" action="/cgi-bin/en-jio/mPin_Modify.html">	
+				<input type="hidden" name="RequestVerifyToken" value="~*token~">
+				<div style="padding-bottom:18px">
+				<label id="title" class="title">Change PIN</label>
+				</div>
+				<div class="inlineDiv2">	
+				<label id="PinCode" class="subttl">Enter Current PIN:</label>
+				<input type="password" name="old_pin" id="old_pin" maxLength="8">
+				</div>
+				<div class="inlineDiv2">	
+				<label id="PinCode" class="subttl">New PIN code:</label>
+				<input type="password" name="new_pin" id="new_pin" maxLength="8">
+				</div>
+				
+				<label id="PinCode" class="subttl">Confirm PIN code:</label>
+				<input type="password" name="validate_new_pin" id="validate_new_pin" maxLength="8">				
+				<br style="clear:both">				
+				<div class="buttonStyle" id="divSaveButton" align="left">
+				<input id="btSave" value="Save" onclick="ChangePin()" type="button">				
+				</div>
+			</form>
+		</div>	
+	</div>
+	
+	<div id="PUKCard" style="display: none">	
+	<form name="PukApply" method="post" action="/cgi-bin/en-jio/mPuk_Apply.html">
+		<label id="pRemAttemps" class="subtt2">Remaining attempts:</label>~*puk_retry_cnt~		
+			<div class="pBoxCont">
+			<label id="lAlertError2" class="error"></label></div>		
+			<input type="hidden" name="RequestVerifyToken" value="~*token~">
+			<div style="padding-bottom:18px">
+			<label id="title" class="title">Unlock PUK</label>
+			</div>
+			<div class="inlineDiv2">
+			<label id="PinCode" class="subttl">Enter PUK code:</label>
+			<input type="password" name="puk" id="puk" maxLength="8">
+			</div>			
+			<label id="NewPinCode" class="subttl">New PIN code:</label>
+			<input type="password" name="puk_new_pin" id="puk_new_pin" maxLength="8">			
+			<br style="clear:both">	
+			<div class="buttonStyle" id="divSaveButton" align="left">
+			<input id="btSave" value="Save" onclick="unlock_puk()" type="button">
+			</div>
+		</form>
+	</div> 
+	
+	<div id="EnterPin" style="display: none">	
+		<form name="EnterPinForm" method="post" action="/cgi-bin/en-jio/mPin_Enter.html">
+		<label id="pRemAttemps" class="subtt2">Remaining attempts:</label>~*pin_retry_cnt~		
+		 <div class="pBoxCont">
+		 <label id="lAlertError2" class="error"></label></div>		
+		<input type="hidden" name="RequestVerifyToken" value="~*token~">	
+		<div style="padding-bottom:18px">
+		<label id="title" class="title">PIN required</label>
+		</div>		
+		<label id="PinCode" class="subttl">PIN Code:</label>
+		<input type="password" name="pin" id="pin" maxLength="8">
+		<br style="clear:both">	
+		<div class="buttonStyle" id="divSaveButton" align="left">
+		<input id="btSave" value="Save" onclick="unlock_pin()" type="button">
+		</div>
+		</form>	 
+	</div>	
+</div>
+</div>
+</body>
+</html>

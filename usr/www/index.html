@@ -1,0 +1,240 @@
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Language" content="en-us">
+    <meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+    <link rel="shortcut icon" href="/images/favicon.ico">
+    <link href="/css/elements.css" rel="stylesheet">
+    <link href="/css/stylesheet.css" rel="stylesheet" type="text/css" />
+    <script language="JavaScript" src="/js/common.js"></script>
+    <script language="JavaScript" src="/js/message.js"></script>
+    <title>Reliance Wireless Router</title>
+</head>
+<script>
+    var islogin = "~*login:0~";
+    var default_login = "~*default_login:0~";
+    var xhr_cgi_query = null;
+    var status = 200;
+    var isCallback = 2;
+    var isMobile = isMobileWeb();
+    var loadingPage = "mLTE";
+
+    function updatecontent() {
+        if (isMobile == 0) {
+            document.getElementById("MainMenu").style.width = "83%";
+            document.getElementById("MainMenu").style.padding = "0 10px 0 0";
+            document.getElementById("content").style.width = "84%";
+        } else {
+            document.getElementById("MainMenu").style.width = "99%";
+            document.getElementById("content").style.width = "99%";
+        }
+    }
+
+    function errorHandle() {
+        isCallback = isCallback - 1;
+        if (isCallback == 0) {
+            status = 0;
+            setTimeout("errorHandle();", 2000);
+            return;
+        } else if (isCallback > 0) {
+            setTimeout("errorHandle();", 4000);
+            return;
+        } else {
+            islogin = 0;
+            setTimeout("redirect_top(\"/\");", 100000);
+        }
+    }
+
+    function cgi_query_callback() {
+        if (xhr_cgi_query.readyState == 4) {
+            isCallback = 2;
+            status = xhr_cgi_query.status;
+            if (xhr_cgi_query.status == 200) {
+                var response_text = xhr_cgi_query.responseText;
+                if (response_text != null && response_text.length > 0) {
+                    response_text = escape_nl(response_text);
+                    var json_obj = eval("(" + response_text + ")");
+                    if (json_obj.result == true) {
+                        //update token					
+                        var token = document.getElementById("RequestVerifyToken");
+                        token.value = json_obj.text;
+
+                        if ((json_obj.login != 1) && (islogin == 1)) {
+                            if (json_obj.login == 2) {
+                                alert("Your session is logging out due to expired.");
+                            } else if (json_obj.login == 3) {
+                                alert("Your session is logging out because another user also logged in as administrator.");
+                            }
+                            redirect_top("/");
+
+                        }
+                    }
+                }
+                setTimeout("cgi_request();", 1000);
+            }
+        }
+
+
+    }
+
+
+    function cgi_request() {
+        if (xhr_cgi_query == null) {
+            xhr_cgi_query = createXHR();
+        }
+
+        if (xhr_cgi_query) {
+            isCallback = 2;
+            xhr_cgi_query.open("POST", "/cgi-bin/en-jio/login_Query.html");
+            xhr_cgi_query.onreadystatechange = cgi_query_callback;
+            xhr_cgi_query.send(null);
+        }
+    }
+
+    function div_show() {
+        if (screen.width > 400) {
+            var screen_width = 50 - (19000 / screen.width);
+            document.getElementById("LoginBox").style.left = screen_width + '%';
+        }
+        var islogin_current = "~*login:0~";
+        if (islogin_current == "0") {
+            document.getElementById("divAdminApp").style.opacity = "0.2";
+            var errorMsg = document.getElementById("lloginfailed");
+            document.getElementById('LoginBox').style.display = "block";
+            errorMsg.style.display = "none";
+            document.getElementById("pwd").value = '';
+            document.getElementById("act").value = '';
+        } else {
+            location.replace("/cgi-bin/en-jio/logout.html");
+        }
+    }
+
+    function btnCancel() {
+        document.getElementById("divAdminApp").style.opacity = "1";
+        document.getElementById('LoginBox').style.display = "none";
+        return false;
+    }
+
+    function check_login_field() {
+        document.forms["login_form"].submit();
+        return;
+    }
+
+    function enterKey(e) {
+        if (e.keyCode == 13)
+            check_login_field();
+    }
+
+    function onLoad() {
+        updatecontent();
+        var msg = "~*login_msg~";
+        var errorMsg = document.getElementById("lloginfailed");
+        var input_act = document.getElementById("act");
+
+        if (msg != "") {
+            if (screen.width > 400) {
+                var screen_width = 50 - (19000 / screen.width);
+                document.getElementById("LoginBox").style.left = screen_width + '%';
+            }
+            document.getElementById('LoginBox').style.display = "block";
+            document.getElementById("divAdminApp").style.opacity = "0.2";
+            errorMsg.style.display = "block";
+            //errorMsg.style.color = "red";
+            errorMsg.innerHTML = "Username or password is incorrect.";
+            input_act.focus();
+        } else {
+            document.getElementById('LoginBox').style.display = "none";
+            errorMsg.style.display = "none";
+            errorMsg.innerHTML = "";
+        }
+
+        if (islogin == "1") {
+            document.getElementById("MainLogOut").innerHTML = "Logout";
+            if (default_login == "1") {
+                if (confirm("Would you like to change default user name and password?")) {
+                    if (isMobile == 0)
+                        document.getElementById("content").src = "/no-cgi/userMgtNewMenu.html";
+                    else
+                        document.getElementById("content").src = "/no-cgi/userMgtMobileMenu.html";
+
+                    document.getElementById("MainMenu").src = "/no-cgi/mainMenuNewUsrMgt.html";
+                } else {
+                    document.getElementById("MainMenu").src = "/no-cgi/mainMenuNewLogin.html";
+                    document.getElementById("content").src = "/cgi-bin/en-jio/mStatus.html";
+                }
+            } else {
+                document.getElementById("MainMenu").src = "/no-cgi/mainMenuNewLogin.html";
+                document.getElementById("content").src = "/cgi-bin/en-jio/mStatus.html";
+            }
+        } else {
+            document.getElementById("MainLogOut").innerHTML = "Login";
+            document.getElementById("MainMenu").src = "/no-cgi/mainNewMenu.html";
+            document.getElementById("content").src = "/cgi-bin/en-jio/mStatus.html";
+        }
+
+        cgi_request();
+        errorHandle();
+    }
+</script>
+
+<body onLoad="onLoad()">
+    <input id="batterystatus" value="~*battery_state~" type="hidden">
+    <input id="batterylevel" value="~*battery_capacity~" type="hidden">
+    <input id="signalstrength" value="~*signalstrength~" type="hidden">
+    <input id="ulCurrentDataRate" value="~*curr_ul_datarate~" type="hidden">
+    <input id="dlCurrentDataRate" value="~*curr_dl_datarate~" type="hidden">
+    <input id="ConnectionTime" value="~*connection_time:0~" type="hidden">
+    <input id="imsi" value="~*imsi~" type="hidden">
+    <input id="devicemodel" value="JMR540" type="hidden">
+    <input id="connectedStatus" value="~*sim_card_state~" type="hidden">
+    <input id="physicalCellId" value="~*pcid:0~" type="hidden">
+    <input id="noOfClient" value="~*connDeviceCount:0~" type="hidden">
+    <input id="eutrancellid" value="~*eutra_global_cellid:0~" type="hidden">
+    <div id="divAdminApp" width="100%" align="center">
+        <h1>
+            <div class="newlogo"><img src="/images/JioDot.png" height="40px" alt="Reliance" title="Reliance"></div>
+            <div class="newloginArea">
+                <a href="#" id="MainLogOut" onClick="div_show()"></a>
+            </div>
+        </h1>
+        <br class="clear">
+
+        <br>
+        <label> This is a unofficial hacked firmware</label>
+        <br>
+        <label> If you paid for this please ask for refund</label>
+        <br>
+        <label> Hacked by abhimortal6 an Indian ♥.</label>
+        <br>
+        <label> Original thread click <a href="https://forum.xda-developers.com/t/guide-unlocking-jiofi-3-jmr540-jmr541-for-all-networks.4285551/">here</a></label>
+        <br>
+        <br>
+        <iframe src="" id="MainMenu" name="MainMenu" height="60px" frameborder="0" scrolling="no"></iframe>
+        <iframe src="" id="content" name="content" height="1360px" frameborder="0" scrolling="no"></iframe>
+    </div>
+    <div id="LoginBox" style="display: none">
+        <form name="login_form" action="/cgi-bin/en-jio/login_check.html" method="post">
+            <input type="hidden" name="RequestVerifyToken" id="RequestVerifyToken" value="~*token_login~">
+            <div class="popSmallUpBox popUpBox2" style="width:95%;">
+                <h2>
+                    <a href="#" class="close" onclick="btnCancel()">
+                        <img src="/images/close_button.png" alt="" height="30px"></a>
+                </h2>
+                <!--div class="pBoxCont" style="width:200px;height:390px"-->
+                <div class="pBoxCont">
+                    <label>Enter username and password to login</label>
+                    <input name="act" maxlength="32" id="act" onkeypress="enterKey(event)" type="text" placeholder="User Name">
+                    <input name="pwd" id="pwd" maxlength="32" onkeypress="enterKey(event)" type="password" placeholder="Password">
+                    <label class="error" id="lloginfailed" style="display: none"></label>
+                    <br>
+                    <div class="buttonStyle" align="center">
+                        <input type="button" value="Login" onclick="check_login_field()">
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</body>
+
+</html>

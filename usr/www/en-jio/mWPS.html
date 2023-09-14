@@ -1,0 +1,413 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Port Forwarding</title>
+<meta http-equiv="Content-Type" content="text/html; charset=big5">
+<link href="/css/stylesheet.css" rel="stylesheet" type="text/css" />
+<link href="/css/elements.css" rel="stylesheet" type="text/css" />
+<script language="JavaScript" src="/js/message.js"></script>
+<script language="JavaScript" src="/js/common.js"></script>
+<script language="JavaScript" src="/js/swipe.js"></script>
+<script language="JavaScript">
+var wps_is_start  = true;
+var xhr_wps_start = null;
+var xhr_wps_stop  = null;
+var xhr_wps_query = null;
+var xhr_wps_query_retry = XHR_RETRY_COUNT;
+var wps_is_start_alreay = false;
+var wps_enable = "~~WPS_ENABLE~";	
+var wps_ctrl_if = "~*wpsctrlif~";
+var mySwipe;
+
+function btnApply_wps()
+{
+	if(wps_enable != document.getElementById("WPS_ENABLE").checked)
+	{
+		if(isMobileWeb() == 1)
+			removeSwipe();
+		document.getElementById('mainBody').style.display = 'none';
+		document.getElementById('divPrimaryNetworkRestarting').style.display = 'block';		
+		document.wpsForm.submit();	
+	}
+	return true;	
+}
+
+function change_wps()
+{
+	if(document.getElementById("WPS_ENABLE").checked == false)
+		document.getElementById("wps_settings").style.display="none";
+	else
+		document.getElementById("wps_settings").style.display="block";	
+}
+
+function wps_start_callback()
+{
+    var wps_status = document.getElementById("wps_status");
+
+    if( xhr_wps_start.readyState == 4 )
+    {
+        if( xhr_wps_start.status == 200 )
+        {
+            var response_text = xhr_wps_start.responseText;
+            
+            if( response_text != null && response_text.length > 0 )
+            {
+                response_text = escape_nl( response_text );
+    
+                var json_obj = eval("("+response_text+")");
+                if (json_obj.result == true) 
+                {
+                    //wps_status.value = json_obj.text;
+                }
+                else
+                {
+					if(json_obj.msg_id == 241)
+					{
+						alert("WPS is triggered by HW key.");
+						location.reload();
+						return;
+					}
+                    else if (json_obj.msg_id == "82")
+                    {
+                        redirect_top("/cgi-bin/en-jio/logout.html");
+                        return;
+                    }
+                    alert(arrayMsg[json_obj.msg_id]);
+                }
+            }
+        }
+    }
+}
+
+function wps_start_request()
+{
+	var RequestVerifyToken = document.getElementById("RequestVerifyToken");
+	
+    if( xhr_wps_start == null )
+    {
+        xhr_wps_start = createXHR();
+    }
+
+    if( xhr_wps_start )
+    {
+        var post_data = "RequestVerifyToken="+RequestVerifyToken.value;
+        xhr_wps_start.open( "POST", "/cgi-bin/en-jio/mWPS_Start.html?RequestVerifyToken=" + RequestVerifyToken.value, true );
+        xhr_wps_start.onreadystatechange = wps_start_callback;
+        xhr_wps_start.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+        xhr_wps_start.send(post_data);
+    }
+}
+
+function wps_query_callback()
+{
+    var wps_status = document.getElementById("wps_status");
+    if( xhr_wps_query.readyState == 4 )
+    {
+        if( xhr_wps_query.status == 200 )
+        {
+            var response_text = xhr_wps_query.responseText;
+
+            xhr_wps_query_retry = XHR_RETRY_COUNT;
+            if( response_text != null && response_text.length > 0 )
+            {
+                response_text = escape_nl( response_text );
+                var json_obj = eval("("+response_text+")");
+				
+				//alert("json_obj.text = "+json_obj.text);
+                if (json_obj.result == true)
+                {
+                    wps_status.innerHTML = json_obj.text;					
+					if( wps_status.innerHTML == "PROCESSING")
+					{
+						document.getElementById("startwps").style.color = "#c2c2a3";					
+						if(wps_ctrl_if != "2")
+                    {
+							document.getElementById("stopwps").disabled = false;
+							document.getElementById("stopwps").style.color = "#fff";
+							document.getElementById("stopwps").style.cursor="pointer";
+                }
+            }
+
+            if( wps_status.innerHTML != "IDLE")
+            {
+                wps_is_start = true;			
+                setTimeout("wps_query_request();", POLLING_LAN_WPS_STATUS_SECONDS*1000);
+						if(wps_status.innerHTML != "FAIL")
+							wps_is_start_alreay = true;
+            }
+					else//IDLE, disable stop button
+            {
+                wps_is_start = false;				
+				if(document.getElementById("startwps").disabled == true)
+                  window.location.reload();				
+			
+						wps_is_start_alreay = false;
+						document.getElementById("startwps").style.color = "#fff";
+						document.getElementById("startwps").style.cursor="pointer";	
+						document.getElementById("startwps").disabled = false;
+						document.getElementById("stopwps").disabled = true;
+						document.getElementById("stopwps").style.color = "#c2c2a3";
+						document.getElementById("stopwps").style.cursor="default";						  
+					}						
+            }
+            else
+            {             
+                    if (json_obj.msg_id == "82")
+                    {
+                        redirect_top("/");
+                        return;
+                    }
+                    alert(arrayMsg[json_obj.msg_id]);
+                }
+            }			
+        }
+        else
+        {
+            --xhr_wps_query_retry;
+            if (xhr_wps_query_retry <= 0)
+            {
+                show_msg(213);
+            }
+            else
+            {
+                show_msg(106);
+                document.getElementById("msg_area").innerHTML += " " + xhr_wps_query_retry;
+                setTimeout("wps_query_request();", XHR_RETRY_SECONDS * 1000);
+            }
+        }
+    }
+}
+
+function wps_query_request() 
+{
+    if( xhr_wps_query == null )
+    {
+        xhr_wps_query = createXHR();
+    }
+
+    if (xhr_wps_query)
+    {
+        xhr_wps_query.open("GET", "/cgi-bin/en-jio/mWPS_Query.html?cur_time=" + new Date().getTime());
+        xhr_wps_query.onreadystatechange = wps_query_callback;
+        xhr_wps_query.send(null);
+    }
+}
+
+
+function check_security()
+{
+	var AP_CYPHER  = "~~AP_CYPHER~";
+	var AP_SECMODE = "~~AP_SECMODE~";
+	var AP_HIDE    = "~~AP_HIDE~";
+	
+    if( (AP_SECMODE == "WPA-PSK") || ( (AP_CYPHER == "TKIP") && (AP_SECMODE != "None") ) )
+    {
+        alert(arrayMsg[194]);
+        return false;
+    }
+
+    if( parseInt( AP_HIDE, 10 ) == 1 )
+    {
+        alert(arrayMsg[195])
+        return false;
+    }
+
+    return true;
+}
+
+
+function start_wps()
+{
+	if(wps_enable == "0")
+	{
+		alert("You need to enable WPS first.");
+		return false;
+	}
+	
+	 if(wps_ctrl_if == "2")
+		return false;
+	
+	if( !wps_is_start )
+		setTimeout( "wps_query_request()", POLLING_LAN_WPS_STATUS_SECONDS*1000 );
+
+	if(wps_is_start_alreay == true)
+	{
+		alert("WPS is in progress");
+		return;
+	}
+		
+    if( !wps_is_start )
+    {
+        if(check_security())
+        {
+            wps_is_start = true;
+			document.getElementById("startwps").style.color = "#c2c2a3";
+			document.getElementById("startwps").style.cursor="default";
+            wps_start_request();						
+        }
+    }
+}
+
+function wps_stop_callback()
+{
+}
+
+function wps_stop_request()
+{
+    if( xhr_wps_stop == null )
+    {
+        xhr_wps_stop = createXHR();
+    }
+
+    if( xhr_wps_stop )
+    {
+		var RequestVerifyToken = document.getElementById("RequestVerifyToken");
+        xhr_wps_stop.open("GET", "/cgi-bin/en-jio/mWPS_Stop.html?RequestVerifyToken=" + RequestVerifyToken.value, true );
+        xhr_wps_stop.onreadystatechange = wps_stop_callback;
+        xhr_wps_stop.send(null);
+    }
+
+    if( xhr_wps_start != null )
+    {
+        xhr_wps_start.abort();
+    }
+}
+
+function stop_wps()
+{
+	if(wps_ctrl_if == "2")
+	{
+		return false;
+	}
+	
+	if(wps_is_start_alreay == false)
+	{
+		var wps_status = document.getElementById("wps_status");
+		if( (wps_status.innerHTML != "PROCESSING") && (wps_status.innerHTML != "DISABLE"))
+		{
+			alert("WPS is triggered by HW key.");
+			location.reload();
+		}
+		return;
+	}
+	
+    if( wps_is_start )
+    {
+		document.getElementById("stopwps").style.color = "#c2c2a3";
+		document.getElementById("stopwps").style.cursor="default";
+        wps_stop_request();
+    }
+}
+
+function update_content()
+{
+	var wifi_status = "~*wifistatus~";
+	if(wps_enable == "0")
+	{		
+		document.getElementById("WPS_ENABLE").checked = false;
+		document.getElementById("WPS_ENABLE_DISABLED").checked = true;
+		document.getElementById("wps_settings").style.display="none";
+	}
+	else
+	{
+		document.getElementById("WPS_ENABLE").checked = true;	
+		document.getElementById("WPS_ENABLE_DISABLED").checked = false;
+		document.getElementById("wps_settings").style.display="block";
+	}
+	
+	var wps_status = document.getElementById("wps_status");
+	document.getElementById("startwps").style.color = "#fff";
+	document.getElementById("stopwps").style.color = "#fff";	
+	
+	if((wps_ctrl_if == "2") || (wifi_status != "2"))
+	   {
+		document.getElementById("startwps").disabled = true;
+		document.getElementById("stopwps").disabled = true;
+		document.getElementById("startwps").style.color = "#c2c2a3";		
+		document.getElementById("startwps").style.cursor="default";		
+		document.getElementById("startwps").removeAttribute("href");
+		document.getElementById("startwps").removeAttribute("onClick");
+		document.getElementById("stopwps").style.color = "#c2c2a3";
+		document.getElementById("stopwps").removeAttribute("href");
+		document.getElementById("stopwps").removeAttribute("onClick");
+		document.getElementById("stopwps").style.cursor="default";		
+
+		if(wifi_status != "2")
+		{
+		  wps_status.innerHTML = "DISABLE";	
+		  return;
+		}
+	   }
+	   else
+	   {
+		 document.getElementById("startwps").disabled = false;
+		 document.getElementById("stopwps").disabled = false;
+	   }
+
+        if(screen.width < 454)
+        {	    
+        	var sbr = document.createElement("br");
+        	var sWPS = document.getElementById("sWPS");
+        	sWPS.appendChild(sbr);
+        }
+
+	   mySwipe = leftSwipe("mainContent", "network", null);
+	   wps_query_request();
+}	
+
+function removeSwipe()
+{
+    mySwipe.unhookEventListener(document.getElementById("mainContent"),mySwipe);
+}   
+</script>
+</head>
+
+<body onload="update_content();">  
+<div class="mainContent" id="mainContent">
+<div class="maintitle">
+<label id="title" class="title">WPS</label>
+</div>
+<hr color="#D8D8D8" size="1px" width="100%"> </hr>
+<div id="Content" class="content">  
+  <label style="font-size:13px">Wi-Fi Protected Setup is a special way to connect Wi-Fi. The AP and client can automatically exchange security settings. You can simply press Start button to initiate WPS process.
+	</label>
+	  <br style="clear:both">
+  <div id="mainBody">
+	<form name="wpsForm" method="post" action="/cgi-bin/en-jio/mWPS_Apply.html">
+		<input type="hidden" name="RequestVerifyToken" value="~*token~">
+		<div id="UpnpSetting">				
+		<div id="rdRadioPF_mode" class="inlineDiv" onClick="change_wps();">
+			<label id="lUPNP_mode" class="subttl4">WPS:</label><span id="sWPS"></span>
+			<input type="radio" name="WPS_ENABLE" id="WPS_ENABLE" value="1"><label for="WPS_ENABLE">Enabled</label>
+			<input type="radio" name="WPS_ENABLE" id="WPS_ENABLE_DISABLED" value="0"><label for="WPS_ENABLE_DISABLED">Disabled</label>				
+		</div>			
+		</div>
+		<div class="buttonStyle" align="left">
+		<input id="btUpdate2" value="Save" onclick="btnApply_wps()" type="button">
+		</div>
+	</form>
+	<br style="clear:both">
+	<form name="myForm" method="post" action="">
+	<input type="hidden" id="RequestVerifyToken" name="RequestVerifyToken" value="~*token~">	
+	<div id="wps_settings">	
+		<div class="inlineDiv">	
+		<label id="lWPStatus" class="subttl4">WPS Status:</label>
+		<label name="wps_status" id="wps_status" class="subttl4"></label>	
+		</div>
+		
+		<div class="buttonStyle" id="divSaveButton" align="left">
+		<input id="startwps" value="Start" onclick="start_wps()" type="button">
+		<input id="stopwps" value="Stop" onclick="stop_wps()" type="button" style="margin-left:8px">
+		</div>
+	</div>
+	</form>
+</div>	  	  
+ <div style="display: none;" id="divPrimaryNetworkRestarting" align="center">  
+	<label class="warm" id="lPassErrorMesPN">Applying WPS settings... Please wait a while... </label>	
+	<br><br>
+	<img src="/images/loading.gif" width="100" height="100"> 	
+</div> 	
+</div>
+</div>
+</body>
+</html>

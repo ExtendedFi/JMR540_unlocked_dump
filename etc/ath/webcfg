@@ -1,0 +1,56 @@
+###################################################################################
+##  testcfg
+## 
+##  Configuration file for testing.
+##  TEST_GROUP_EMPTY is to avoid duplicate default setting overhead
+##  Put configuration file under /etc/ath/ with filename as *cfg (e.g. wificfg)
+###################################################################################
+
+WEB_GROUP_EMPTY=`cfg -v WEB_GROUP_EMPTY`
+
+if [ "$WEB_GROUP_EMPTY" != "NO" ]; then
+
+  if [ "$WEB_GROUP_EMPTY" = "PARTIAL" ]; then
+  
+  # Get the current settings from flash/cache area
+  cfg -e > /tmp/vars.$$
+  . /tmp/vars.$$
+  rm /tmp/vars.$$
+  
+  fi
+
+# Set config items as default values
+
+# Login password
+cfg -a PASSWORD=${PASSWORD:="administrator"}
+cfg -a ADMIN_ACCOUNT=${ADMIN_ACCOUNT:="administrator"}
+cfg -a USER_ACCOUNT=${USER_ACCOUNT:="user"}
+cfg -a USER_PASSWORD=${USER_PASSWORD:="user"}
+# Device name
+cfg -a DEVICE_NAME=${DEVICE_NAME:="Wifi_Router"}
+
+# WebUI
+cfg -a CHROME_WEBUI=${CHROME_WEBUI:="0"}
+
+# wan_wifi configuration
+# Use SoftBank hotspot profile
+#cfg -a WAN_WIFI_PROFILE_NUM=${WAN_WIFI_PROFILE_NUM:="3"}
+#cfg -a WAN_WIFI_PROFILE_SEQ=${WAN_WIFI_PROFILE_SEQ:="3"}
+#cfg -a WAN_WIFI_USE_DEFAULT=${WAN_WIFI_USE_DEFAULT:="1"}
+# Not use Softbank hotspot profile
+cfg -a WAN_WIFI_PROFILE_NUM=${WAN_WIFI_PROFILE_NUM:="0"}
+cfg -a WAN_WIFI_PROFILE_SEQ=${WAN_WIFI_PROFILE_SEQ:="0"}
+cfg -a WAN_WIFI_USE_DEFAULT=${WAN_WIFI_USE_DEFAULT:="0"}
+
+# Now it's non-empty
+cfg -a WEB_GROUP_EMPTY=NO
+
+# PMM configuration
+cfg -a PMM_SUSPEND_SYSTEM_TIMER_ENABLE=${PMM_SUSPEND_SYSTEM_TIMER_ENABLE:="1"}
+cfg -a PMM_SUSPEND_SYSTEM_TIMER=${PMM_SUSPEND_SYSTEM_TIMER:="30"}
+cfg -a PMM_SUSPEND_SHORT_PWRKEY=${PMM_SUSPEND_SHORT_PWRKEY:="0"}
+cfg -a MACFILTER_ENABLE=${MACFILTER_ENABLE:="0"}
+cfg -a HTTP_GUI_REFRESH=${HTTP_GUI_REFRESH:="10"}
+cfg -a SDCardMode=${SDCardMode:="wifi"}
+
+fi

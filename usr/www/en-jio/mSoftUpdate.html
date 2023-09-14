@@ -1,0 +1,220 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Software Upgrade</title>
+<meta http-equiv="Content-Type" content="text/html; charset=big5">
+<link href="/css/stylesheet.css" rel="stylesheet" type="text/css" />
+<script language="JavaScript" src="/js/common.js"></script>
+<script language="JavaScript" src="/js/swipe.js"></script>
+<script language="JavaScript">
+
+var xhr_firmware_udpate_query = null;
+var uploading = 0;
+var fileSize = 0;
+var update_process = 0;
+
+function select_file_change( fName )
+{
+    var FILE_NAME = document.getElementById( "fileName" );
+    fullName = fName.value;
+    shortName = fullName.match(/[^\/\\]+$/);
+    FILE_NAME.value = shortName;
+}
+
+function firmware_update_query_callback()
+{
+    var PERCENT = document.getElementById("PERCENT");
+    var PROGRESS_BAR = document.getElementById("UpgradeProgressPercent");   
+    var WARNING = document.getElementById("lWarning");
+	var WARNINGLine1 = document.getElementById("lWarningLine1");
+	var WARNINGLine2 = document.getElementById("lWarningLine2");
+		
+    if( xhr_firmware_udpate_query.readyState == 4 )
+    {
+        if( xhr_firmware_udpate_query.status == 200 )
+        {
+            var response_text = xhr_firmware_udpate_query.responseText;			
+			
+            if( response_text != null && response_text.length > 0 )
+            {
+                response_text = escape_nl( response_text );
+                var json_obj = eval("("+response_text+")");					
+                if( json_obj.result == true )
+                {                    
+					if(fileSize != 0)
+					{						
+					    if(json_obj.progress != 0)
+					    {
+					       update_process = json_obj.progress;
+					    }
+					    
+						var upload_len = parseInt(update_process)*100;
+						var penercent = Math.round(upload_len/fileSize);						
+						PERCENT.innerHTML = penercent+"%";
+					}
+					
+					PROGRESS_BAR.style.background = "green";
+					PROGRESS_BAR.style.width = "Math.round(penercent*0.01)";
+					
+										
+                    if( json_obj.updating == "2" )
+					{						
+						redirect("/cgi-bin/en-jio/mSoftUpdate_Reboot.html");
+					}
+                    else if( json_obj.updating == "3" )
+                    {
+                        //PROGRESS_BAR.style.display = "none";
+                        //BACK.style.display = "";
+                        //WARNING.style.display = "none";
+						//WARNINGLine1.style.display = "none";
+						//WARNINGLine2.style.display = "none";
+                        //PERCENT.innerHTML = arrayMsg[ json_obj.text.fail_result ];
+                        redirect("/cgi-bin/en-jio/mSoftUpdate.html");
+                    }
+                    else
+					{						
+						setTimeout("firmware_update_query_request();", POLLING_FW_STATUS_SECONDS*1000);
+					}
+                        
+                }
+            }
+        }
+    }
+}
+function firmware_update_query_request()
+{
+	if (window.XMLHttpRequest)
+	{// code for IE7+, Firefox, Chrome, Opera, Safari
+		xhr_firmware_udpate_query=new XMLHttpRequest();
+	}
+	else
+	{// code for IE6, IE5
+		xhr_firmware_udpate_query=new ActiveXObject("Microsoft.XMLHTTP");
+	}
+	
+    if( xhr_firmware_udpate_query )
+    {
+        xhr_firmware_udpate_query.open("GET", "/cgi-bin/en-jio/mSoftUpdate_InProgress.html", false);
+        xhr_firmware_udpate_query.onreadystatechange = firmware_update_query_callback;
+        xhr_firmware_udpate_query.send(null);
+    }
+}
+function getfileName()
+{
+	   var filename;
+	   var pathandfile=document.getElementById("firmware").value;
+	   var last=pathandfile.lastIndexOf("\\");
+	   
+	   if(last == -1)
+	   	  filename=pathandfile;
+	   else
+	   	filename=pathandfile.substring(last+1,pathandfile.length);
+	   
+	    document.getElementById("filename").value=filename;   
+}
+function upgradeRouter()
+{
+    var FIRMWARE = document.getElementById( "firmware" );
+    var UPLOAD_ACTION = document.getElementById( "UPLOAD_ACTION" );	
+	
+    if( FIRMWARE.value == "" )
+        alert( "Please select firmware file" );
+    else
+    {             
+		fileSize = FIRMWARE.files.item(0).size;
+		
+		if(fileSize > 0)
+		{
+			if( uploading == 0 )
+			{			   
+			   document.forms["myForm"].submit();
+			   setTimeout("firmware_update_query_request();", POLLING_FW_STATUS_SECONDS*1000);
+			   document.getElementById('upgradeFrame').style.display = 'none';	
+			   document.getElementById('upgradeModalBox').style.display = 'block';			   
+			   UPLOAD_ACTION.value = "Cancel";
+			   uploading = 1;
+			}
+			else
+			{
+				uploading = 0;
+				UPLOAD_ACTION.value = "Update";
+				myForm.reset();
+			}
+		}
+    }
+
+    return false;	
+}
+function fileBrowser()
+{
+    var fwid = document.getElementById( "firmware" );
+    fwid.click();
+}
+    
+function update_content()
+{
+	var msg = "~*MSG~";	
+	if(msg != "")
+	{
+		document.getElementById("lupgradeforbidden").innerHTML = msg;
+		document.getElementById("lupgradeforbidden").style.display = "block";
+		return;
+	}
+	
+	var PERCENT = document.getElementById("PERCENT");
+	PERCENT.innerHTML = "0%";
+        document.getElementById('upgradeFrame').style.display = 'block';	
+        document.getElementById('upgradeModalBox').style.display = 'none';
+	leftSwipe("userContent", "mangt", null);
+}
+</script>
+</head>
+<body class="StatusBody" onLoad="update_content();"> 
+<form name="myForm" method="post" action="/cgi-bin/en-jio/mSoftUpdate_Start.html?~*token~" enctype="multipart/form-data">
+<div class="userContent" id="userContent">
+<div class="maintitle">
+<label id="title" class="title">Software Upgrade</label>
+</div>
+<hr color="#D8D8D8" size="1px" width="100%"> </hr>
+<div id="Content" class="upgradeconetnt">  
+	<div id="upgradeFrame">
+		<div id="upgradeFrameFw">
+		<label id="lCurrentSoftVersion" class="subtt2">Current Software Version:</label>~*softversion~
+		</div>
+		<br>
+		<label id="lSoftwareInfoText" class="subttl">If you have a software upgrade file on your machine, you can use this option to manually upgrade the router.</label>
+		<label id="lSoftwareWarningText" class="title">Warning!!! Please make sure you connect to MyFi.</label>
+		<br>			
+		<table>
+			<td><label class="subtt2" style="margin-bottom:8px;font-size:14px">Software Image:</label></td>
+			<td>
+			<div class="file-box">
+			<input id="firmware" name="fupgrade.bin" class="file" onchange="getfileName()" type="file" style="cursor:pointer">
+			<input id="filename" class="txt" type="text">  
+			<input class="btnWtn" value="Browse" type="button" onclick="fileBrowser()">  
+			<label class="error" id="lupgradeforbidden" style="display: none"></label>
+			</div>			
+			</td>		
+		</table>
+		<div class="buttonStyle" align="left"> 
+		<input name="UPLOAD_ACTION" id="UPLOAD_ACTION" value="Upgrade" onclick="upgradeRouter()" type="button">
+		</div>
+	</div>		
+	
+	<div align="center" id="upgradeModalBox" style="display: none">
+		<label id="lUpgrade">Upload is in progress,please don't power off.</label>
+		<br>
+		<div class="progressbar"> 
+		<div id="PERCENT" class="progressText">0%</div> 
+		<div id="UpgradeProgressPercent" class="bar" style="width: 0%;"></div> 
+		</div> 
+		<br> <br>
+		<label id="lWarning">W A R N I N G !</label>
+		<label id="lWarningLine1">Upgrading firmware may take a few minutes.</label>
+		<label id="lWarningLine2">Do not turn off the power,break off the USB cable or press the reset button!</label>
+	</div>	
+</div>
+</div>
+</form>
+</body>
+</html>

@@ -1,0 +1,582 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>LAN Configuration</title>
+<meta http-equiv="Content-Type" content="text/html; charset=big5">
+<link href="/css/stylesheet.css" rel="stylesheet" type="text/css" />
+<link href="/css/elements.css" rel="stylesheet" type="text/css" />
+<link href="/css/table.css" rel="stylesheet" type="text/css" />
+<script language="JavaScript" src="/js/validate.js"></script>
+<script language="JavaScript" src="/js/common.js"></script>
+<script language="JavaScript" src="/js/message.js"></script>
+<script language="JavaScript" src="/js/swipe.js"></script>
+<script language="JavaScript">
+var MAX_PRESERVATION_Client = 8;
+var MAX_COUNT_PER_PAGE = 10;
+var rowIndex = [];
+var rulesData = [];
+var current_page = 0;
+var total_page = 0;
+var start_index = 0;
+var end_index = 0;
+var start_ip1="~*dhcp_start_ip1~";
+var start_ip2="~*dhcp_start_ip2~";
+var start_ip3="~*dhcp_start_ip3~";
+var edit_index = -1;
+var mySwipe;
+
+function isDuplicatedIPAddr(ip)
+{
+	for(var i = 0; i< rulesData.length; i++)
+	{
+		if((edit_index != i ) && (ip == rulesData[i].lan_ip))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+function isDuplicatedMAC(mac)
+{
+	for(var i = 0; i< rulesData.length; i++)
+	{
+		if((edit_index != i ) && (mac.toLocaleLowerCase() == rulesData[i].mac.toLocaleLowerCase()))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+function valiateIPRange()
+{
+	var start_ip_addr1 =  document.getElementById("sinp3").value;
+	var start_ip_addr2 =  document.getElementById("sinp4").value;
+	var end_ip_addr1 =  document.getElementById("einp3").value;
+	var end_ip_addr2 =  document.getElementById("einp4").value;
+
+	if(isInteger(start_ip_addr1) == false || 
+	isInteger(start_ip_addr2) == false ||
+	parseInt(start_ip_addr1) < 0 || 
+	parseInt(start_ip_addr1) > 255 ||
+	parseInt(start_ip_addr2) < 1 || 
+	parseInt(start_ip_addr2) > 254)
+	{
+		alert("Starting IP Address is invalid.");
+		return false;
+	}
+
+	if(parseInt(start_ip_addr1) == 225 && parseInt(start_ip_addr2) == 1)		
+	{
+		alert("192.168.225.1 is host IP address.");
+		return false;
+	}	
+
+	if(isInteger(end_ip_addr1) == false || 
+	isInteger(end_ip_addr2) == false ||
+	parseInt(end_ip_addr1) < 0 || 
+	parseInt(end_ip_addr1) > 255 ||
+	parseInt(end_ip_addr2) < 1 || 
+	parseInt(end_ip_addr2) > 254)
+	{
+		alert("Ending IP Address is invalid.");
+		return false;
+	}
+
+	if(parseInt(start_ip_addr1) != parseInt(end_ip_addr1) )
+	{
+		alert("IP pool is invalid.");
+		return false;		
+	}
+
+	if(parseInt(end_ip_addr2) < parseInt(start_ip_addr2) )
+	{
+		alert("Ending IP Address must greater then Starting IP Address.");
+		return false;		
+	}
+
+	if((parseInt(end_ip_addr2) - parseInt(start_ip_addr2)) < 99)
+	{
+		alert("IP pool is smaller than 100, please configure a larger IP pool.");
+		return false;	
+	}
+}
+
+function validate_all()
+{
+	if(valiateIPRange() == false)
+		return false;
+
+	var ruleList = "";
+	for(var i = 0; i< rulesData.length; i++)
+	{
+		ruleList = ruleList+rulesData[i].lan_ip+","+rulesData[i].mac+","+rulesData[i].devname+";";	
+	}
+
+	var ruletables = document.getElementById("PRVERSION_IPs");
+	ruletables.value= ruleList;
+	if(isMobileWeb() == 1)
+	removeSwipe();
+	document.getElementById('mainBody').style.display = 'none';
+	document.getElementById('divPrimaryNetworkRestarting').style.display = 'block';
+	setTimeout("redirect(\"/cgi-bin/en-jio/mLan_Config.html\")", 8*1000);	
+	document.myForm.submit();	
+	return true;
+}
+
+function btnCancelClicked()
+{
+	document.getElementById("set_inp3").value="";
+	document.getElementById("set_inp4").value="";
+	document.getElementById("set_mac").value="";;
+
+	document.getElementById("dev_name").value="";
+	document.getElementById("mbox").style.display = "none";
+	document.getElementById("mainContent").style.opacity="1";
+	document.getElementById("mainContent").style.background="#ffffff";
+	
+	edit_index=-1;
+	return true;
+}
+
+function insetNoEntryRow(isInsert)
+{
+	var registration_list_table = document.getElementById("registration_list_table");
+	if(isInsert == true)
+	{
+		var new_row = registration_list_table.insertRow(1);
+		new_row.className = "row_item";
+		new_row.id = (1);
+
+		var td1 = document.createElement("td");
+		td1.appendChild(document.createTextNode("No entries found"));
+		td1.style.textAlign="left";
+		td1.setAttribute("colspan", "5");
+		new_row.appendChild(td1);
+	}
+	else
+	{
+		registration_list_table.deleteRow(1);
+	}
+}
+
+function clear_table()
+{
+	while(document.getElementById("registration_list_table").rows.length > 1)
+		document.getElementById("registration_list_table").deleteRow(-1);
+}
+
+function DeleteEntry(x)
+{
+	var registration_list_table = document.getElementById("registration_list_table");
+	for(var i = 0; i< rowIndex.length; i++)
+	{
+		if(rulesData[i].idx == x)
+		{
+			rulesData.splice(i, 1);
+			break;
+		}
+	}	
+	var index = rowIndex.indexOf(x);
+	rowIndex.splice(index, 1);
+	registration_list_table.deleteRow((index-start_index)+1);
+	total_page = (rulesData.length)/MAX_COUNT_PER_PAGE;
+
+	if(rulesData.length == 0)
+	{
+		insetNoEntryRow(true);
+	}
+	else
+	{
+		loadingPortMFTable();
+	}
+}
+
+function EditEntry(x)
+{
+	for(var i = 0; i< rowIndex.length; i++)
+	{
+		if(rulesData[i].idx == x)
+		{			
+			break;
+		}
+	}
+	
+	//rulesData[i].lan_ip
+	//set_inp3
+	edit_index = i;
+	var ipAddr = rulesData[i].lan_ip.split(".");
+	var setinp3 = document.getElementById("set_inp3");
+	setinp3.value = ipAddr[2];
+
+	var setinp4 = document.getElementById("set_inp4");
+	setinp4.value = ipAddr[3];
+	
+	var devname = document.getElementById("dev_name");
+	devname.value = rulesData[i].devname;
+	
+	var setmac = document.getElementById("set_mac");
+	set_mac.value = rulesData[i].mac;
+	addCustomMFRule();
+}
+
+function insert_registration(no, registration)
+{	
+	var registration_list_table = document.getElementById("registration_list_table");
+
+	var new_row = registration_list_table.insertRow(no+1);
+	new_row.className = "row_item";
+	new_row.id = (no+1);
+
+	var td2 = document.createElement("td");
+	td2.appendChild(document.createTextNode(registration.lan_ip));
+	td2.style.textAlign="center";	
+
+	var td3 = document.createElement("td");
+	td3.appendChild(document.createTextNode(registration.devname));
+	td3.style.textAlign="center";	
+
+	var td4 = document.createElement("td");
+	td4.appendChild(document.createTextNode(registration.mac));
+	td4.style.textAlign="center";	
+
+	var td5 = document.createElement("td");
+	var img_delete_src = document.createElement("img");
+	var h =document.createTextNode("  "); 
+	
+	img_delete_src.setAttribute("src", "/images/close.png");
+	img_delete_src.setAttribute("style", "cursor:pointer");
+	img_delete_src.setAttribute("title", "Delete");		
+	img_delete_src.setAttribute("onclick", "DeleteEntry("+(registration.idx)+")");
+	td5.style.textAlign="center";
+	td5.appendChild(img_delete_src);
+	
+	td5.appendChild(h);
+	var img_edit_src = document.createElement("img");
+	img_edit_src.setAttribute("src", "/images/edit.png");
+	img_edit_src.setAttribute("style", "cursor:pointer");
+	img_edit_src.setAttribute("title", "Edit");		
+	img_edit_src.setAttribute("onclick", "EditEntry("+(registration.idx)+")");	
+	td5.appendChild(img_edit_src);
+
+	//new_row.appendChild(td1);
+	new_row.appendChild(td2);
+	new_row.appendChild(td3);
+	new_row.appendChild(td4);
+	new_row.appendChild(td5);
+
+	return new_row;
+}
+
+function loadingPortMFTable()
+{
+	start_index = current_page*MAX_COUNT_PER_PAGE;
+	end_index = (current_page+1)*MAX_COUNT_PER_PAGE;
+
+	if(end_index > rulesData.length)
+		end_index = rulesData.length;
+
+	clear_table();
+	var count = end_index-start_index;
+
+	for(var j = 0; j<count ; j++)
+	{
+		var index = start_index+j;
+		var insert_entry = {idx:rulesData[index].idx, lan_ip:rulesData[index].lan_ip, mac:rulesData[index].mac, devname:rulesData[index].devname};
+		insert_registration(j, insert_entry);	
+	}
+	if((rulesData.length == 0))
+	{
+		//No entries found.
+		insetNoEntryRow(true);
+	}
+}
+
+function btnOKClicked()
+{
+	var lan_ip = document.getElementById("set_inp1").value+"."+ document.getElementById("set_inp2").value+"."+document.getElementById("set_inp3").value+"."+document.getElementById("set_inp4").value;
+	if( checkEmpty( document.getElementById("set_inp3") ) || checkEmpty( document.getElementById("set_inp4") ))
+	{
+		alert("IP Address can not be empty.");
+		document.getElementById("mainContent").style.opacity="0.5";
+		document.getElementById("mainContent").style.background="#eaeae1";		
+		return false;
+	}
+
+	if(lan_ip == "192.168.225.1")
+	{
+		alert("192.168.225.1 is reserved as host IP address.\nPlease choose another IP address.");
+		document.getElementById("mainContent").style.opacity="0.5";
+		document.getElementById("mainContent").style.background="#eaeae1";	
+		return false;	
+	}
+
+	if(isInteger(document.getElementById("set_inp3").value) == false || 
+	isInteger(document.getElementById("set_inp4").value) == false ||
+	parseInt(document.getElementById("set_inp3").value) < 0 || 
+	parseInt(document.getElementById("set_inp3").value) > 255 ||
+	parseInt(document.getElementById("set_inp4").value) < 1 || 
+	parseInt(document.getElementById("set_inp4").value) > 254)
+	{
+		alert("IP Address is invalid.");	
+		return false;
+	}	
+
+	var devname = document.getElementById("dev_name");
+	var valiate_deviceName = checkDeviceName( devname );
+
+	if( valiate_deviceName == 0)
+	{
+		alert("Device Name can not be empty.");
+		document.getElementById("mainContent").style.opacity="0.5";
+		document.getElementById("mainContent").style.background="#eaeae1";	
+		return false;
+	}
+
+	if( valiate_deviceName == 1)
+	{
+		alert("The maximum length of Device Name is 64.");
+		document.getElementById("mainContent").style.opacity="0.5";
+		document.getElementById("mainContent").style.background="#eaeae1";		
+		return false;
+	}
+
+	if( valiate_deviceName == 2)
+	{
+		alert("The Device Name is invalid. "+arrayMsg[243]);
+		document.getElementById("mainContent").style.opacity="0.5";
+		document.getElementById("mainContent").style.background="#eaeae1";	
+		return false;
+	}	
+
+	var mac = document.getElementById("set_mac");
+
+	//check mac is valid
+	if (!validate_mac(mac)) {
+		alert("Invalid MAC address.");
+		document.getElementById("mainContent").style.opacity="0.5";
+		document.getElementById("mainContent").style.background="#eaeae1";	
+		return false;
+	}
+
+	//1. check ip is duplicated
+	if(isDuplicatedIPAddr(lan_ip) == true)
+	{
+		alert("IP Address " + lan_ip + " is already reserved for another device.");
+		document.getElementById("mainContent").style.opacity="0.5";
+		document.getElementById("mainContent").style.background="#eaeae1";	
+		return false;	
+	}
+
+	//2. check mac is duplicated
+	if(isDuplicatedMAC(mac.value) == true)
+	{
+		alert("MAC Address " + mac.value + " is already reserved for another device.");
+		document.getElementById("mainContent").style.opacity="0.5";
+		document.getElementById("mainContent").style.background="#eaeae1";		
+		return false;	
+	}
+	var registration_list_table = document.getElementById("registration_list_table");
+	current_page = parseInt(total_page);
+	if(edit_index == -1)
+	{
+		var is_no_entry = registration_list_table.rows[1].cells[0].innerHTML;
+		if(is_no_entry != null)
+		{
+			if(is_no_entry == "No entries found")
+			{
+				insetNoEntryRow(false);
+			}
+		}
+		var insert_entry = {idx:(rulesData.length+1), lan_ip:lan_ip, mac:mac.value, devname:devname.value};
+		rowIndex.push((rulesData.length+1)); 
+		rulesData.push(insert_entry);
+		total_page = (rulesData.length)/MAX_COUNT_PER_PAGE;
+	}
+	else
+	{		
+		rulesData[edit_index].lan_ip=lan_ip;
+		rulesData[edit_index].mac=mac.value;
+		rulesData[edit_index].devname=devname.value;
+	}
+	
+	loadingPortMFTable();
+	
+	btnCancelClicked();
+	document.getElementById("mbox").style.display = "none";
+	document.getElementById("mainContent").style.opacity="1";
+	document.getElementById("mainContent").style.background="#ffffff";	
+	edit_index=-1;
+	return true;
+}
+
+function addCustomMFRule()
+{
+	if((edit_index == -1 ) && (MAX_PRESERVATION_Client <= rulesData.length))
+	{
+		alert("The maximum number of DHCP Reservation records is 8.");
+		return false;
+	}
+	
+	document.getElementById("mbox").style.display = "block";
+	document.getElementById("mainContent").style.opacity="0.5";
+	document.getElementById("mainContent").style.background="#eaeae1";
+}
+
+function update_content()
+{	
+	var reservation_ips =  "~`internet get_reservRecords 2>/dev/null`~";
+	current_page = 0;
+	total_page = 0;
+	if(reservation_ips != "")
+	{
+		var rule = reservation_ips.split(";");
+		if(rule.length > MAX_COUNT_PER_PAGE)
+		{
+		//document.getElementById("change_page").innerHTML = "<div onclick='next_page();' style='cursor: pointer;'>Next >></div>";
+		}
+
+		for(var i = 0; i<rule.length ; i++)
+		{
+			var pattern = rule[i].split(",");
+			var rule_entry = {idx:parseInt(i+1),lan_ip:pattern[0], mac:pattern[1], devname:pattern[2]};		
+			rowIndex.push(i+1); 
+			rulesData.push(rule_entry);		
+		}
+
+
+		rulesData.sort(function (a, b) {
+			if (a.idx > b.idx) {
+				return 1;
+			}
+			if (a.idx < b.idx) {
+				return -1;
+			}
+			// a must be equal to b
+			return 0;
+		});		
+
+		total_page = (rulesData.length)/MAX_COUNT_PER_PAGE;
+	}
+	loadingPortMFTable();
+	if(screen.width < 454)
+	{	    
+		var sbr = document.createElement("br");
+		var ebr = document.createElement("br");
+		var sRouterIP = document.getElementById("sRouterIP");
+		var eRouterIP = document.getElementById("eRouterIP");
+		sRouterIP.appendChild(sbr);
+		eRouterIP.appendChild(ebr);
+	}
+
+	//leftSwipe("title", "network", null);
+	mySwipe = leftSwipe("mainContent", "network", "staticTable");
+}
+
+function removeSwipe()
+{
+    mySwipe.unhookEventListener(document.getElementById("mainContent"),mySwipe);
+}
+</script>
+</head>
+
+<body onLoad="update_content();" >
+<form name="myForm" method="post" action="/cgi-bin/en-jio/mLan_Config_Apply.html">
+<input type="hidden" name="RequestVerifyToken" value="~*token~">
+<input type="hidden" name="PRVERSION_IPs" id="PRVERSION_IPs">	
+<div class="mainContent" id="mainContent">
+	<div class="maintitle">
+		<label id="title" class="title">LAN IPv4 Configuration</label>
+	</div>
+	<hr color="#D8D8D8" size="1px" width="100%"> </hr>
+	<div id="Content" class="content">
+		<div id="mainBody">
+			<div id="mainWiFiFrame">
+				<div class="inlineDiv"><label class="subttl">IP Address:</label>~*routerIP~</div>
+				<div class="inlineDiv">	<label class="subttl">IP Subnet Mask:</label>~*routermask~</div>
+				<div class="inlineDiv">
+					<label class="subttl">Starting IP Address:</label><span id="sRouterIP"></span>
+					<input type="text" id="sinp1" name="sinp1" style="width:50px;text-align:center" value="~*dhcp_start_ip1~" disabled>.
+					<input type="text" id="sinp2" name="sinp2" style="width:50px;text-align:center" value="~*dhcp_start_ip2~" disabled>.
+					<input type="text" id="sinp3" name="sinp3" style="width:50px;text-align:center" maxlength="3" value="~*dhcp_start_ip3~">.
+					<input type="text" id="sinp4" name="sinp4" style="width:50px;text-align:center" maxlength="3" value="~*dhcp_start_ip4~">
+				</div>
+				<div class="inlineDiv">
+					<label class="subttl">Ending IP Address:</label><span id="eRouterIP"></span>
+					<input type="text" id="einp1" name="einp1" style="width:50px;text-align:center" value="192" value="~*dhcp_end_ip1~" disabled>.
+					<input type="text" id="einp2" name="einp2" style="width:50px;text-align:center" value="168" value="~*dhcp_end_ip1~" disabled>.
+					<input type="text" id="einp3" name="einp3" style="width:50px;text-align:center" maxlength="3" value="~*dhcp_end_ip3~">.
+					<input type="text" id="einp4" name="einp4" style="width:50px;text-align:center" maxlength="3" value="~*dhcp_end_ip4~">
+				</div>
+			</div>
+			<br>
+			<label id="lPDP_default" class="title" style="margin-bottom:8px;">Static IPv4 Address Reservation</label>		
+			<div id="preservation_list">
+				<div class="buttonStyleIn2" id="divSaveButton" align="left">		
+					<input id="btUpdate" value="Add Rule" onclick="addCustomMFRule()" type="button">
+				</div>	
+				<br style="clear:both">
+				<div id="staticTable" style="overflow-x:auto;">
+				<table id="registration_list_table" class="dataTbl10 example" style="margin-top: 5px" width="99%">
+					<thead>
+						<tr>
+							<!--th id="ltPWRuleName" width="4%">No.</th-->
+							<th id="ltPWRuleName" width="25%">IP Address</th>
+							<th id="ltPWIP" width="30%">Device Name</th>
+							<th id="ltPWIP" width="30%">MAC Address</th>			
+							<th class="close" width="30%">&nbsp;</th>							
+						</tr>
+					</thead>				
+				</table>
+				</div>
+			</div> 
+			<div class="buttonStyle" align="left"  id="divSavePrimaryNetworkData">		 
+				<input id="btUpdate" value="Save" onclick="validate_all()" type="button">		
+			</div>
+		</div>		  
+		<div style="display: none;" id="divPrimaryNetworkRestarting" align="center">
+		<label class="warm" id="lPassErrorMesPN">Applying LAN Configuration... Please wait a while... </label>	
+		<br><br>		
+		<img src="/images/loading.gif" width="100" height="100">
+    </div>	
+</div>
+</div>
+</form>
+
+<div id="mbox" class="ontop">
+	<div id="popup" class="popUpBox">	
+		<!--h2 style="margin:-20px 385px;"-->
+		<h2 style="margin:-20px 95%;">
+		<a href="#." class="close" onclick="btnCancelClicked()"><img src="/images/close_button.png" alt="" height="25px"></a>
+		</h2>
+		<br style="clear:both">
+		<h1>IPv4 Address Reservation</h1>
+		<br style="clear:both">
+		<div class="pBoxCont">	
+			<div class="inlineDiv2">
+				<label id="lPort_pw">IP Address:</label>				
+				<input type="text" id="set_inp1" style="width:12%;text-align:center;margin-left: -25px" value="~*dhcp_start_ip1~" disabled>.
+				<input type="text" id="set_inp2" style="width:12%;text-align:center" value="~*dhcp_start_ip2~" disabled>.
+				<input type="text" id="set_inp3" style="width:12%;text-align:center" maxlength="3">.
+				<input type="text" id="set_inp4" style="width:12%;text-align:center" maxlength="3">
+			</div>
+			<div class="inlineDiv2">
+				<label id="lIP_pw">Device Name:</label>				
+				<input type="text" id="dev_name" style="width:57%;text-align:center;margin-left: -25px" maxlength="32">
+			</div>				
+			<div class="inlineDiv2">
+				<label id="lIP_pw">MAC Address:</label>				
+				<input type="text" id="set_mac" style="width:57%;text-align:center;margin-left: -25px" maxlength="17">
+			</div>
+			<div class="mboxButton" align="center">
+			<input id="btnOk" value="OK" onclick="btnOKClicked()" type="button">
+			<input id="btnCancel" value="Cancel" onclick="btnCancelClicked()" type="button" style="margin-left:8px">
+			</div>		
+		</div>	
+		<br style="clear:both">		
+	</div>
+</div>
+</body>
+</html>

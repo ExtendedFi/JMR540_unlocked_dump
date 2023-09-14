@@ -1,0 +1,91 @@
+###################################################################################
+##  3gcfg
+## 
+##  Configuration file for testing.
+##  3G_GROUP_EMPTY is to avoid duplicate default setting overhead
+##  Put configuration file under /etc/ath/ with filename as *cfg (e.g. 3gcfg)
+###################################################################################
+
+WAN3G_GROUP_EMPTY=`cfg -v WAN3G_GROUP_EMPTY`
+
+if [ "$WAN3G_GROUP_EMPTY" != "NO" ]; then
+
+  if [ "$WAN3G_GROUP_EMPTY" = "PARTIAL" ]; then
+  
+  # Get the current settings from flash/cache area
+  cfg -e > /tmp/vars.$$
+  . /tmp/vars.$$
+  rm /tmp/vars.$$
+  
+  fi
+
+# Set config items as default values
+cfg -a WAN_MODE_3G=${WAN_MODE_3G:="1"}
+
+cfg -a WAN_3G_PROFILE_NAME=${WAN_3G_PROFILE_NAME:="Profile1"}
+cfg -a WAN_3G_APN=${WAN_3G_APN:="internet"}
+cfg -a WAN_3G_DNS=${WAN_3G_DNS:="auto"}
+# Modify by Peter Li for the missing DNS issue, 2014/02/07
+cfg -a WAN_3G_AUTH_METHOD=${WAN_3G_AUTH_METHOD:="none"}
+#cfg -a WAN_3G_AUTH_METHOD=${WAN_3G_AUTH_METHOD:="chap"}
+# End by Peter Li for the missing DNS issue, 2014/02/07
+cfg -a WAN_3GCM_DISABLE=${WAN_3GCM_DISABLE:="0"}
+
+# cfg -a WAN_3G_USER_NAME=${WAN_3G_USER_NAME:=""}  (128)
+# cfg -a WAN_3G_PASSWORD=${WAN_3G_PASSWORD:=""}  (128)
+# cfg -a WAN_3G_AUTH_METHOD=${WAN_3G_AUTH_METHOD:="chap"}  (pap,chap)
+# cfg -a WAN_3G_IP_FAMILY_PREF=${WAN_3G_IP_FAMILY_PREF:="4"}  (0,4,6,8)
+# cfg -a WAN_3G_EXT_TECH_PREF=${WAN_3G_EXT_TECH_PREF:="4"}  (1,4)
+# cfg -a WAN_3G_CALL_TYPE=${WAN_3G_CALL_TYPE:="1"}  (0,1)
+
+#==================================================================
+cfg -a WAN_3G_PROFILE_NAME_00=${WAN_3G_PROFILE_NAME_00:="APTNET"}
+cfg -a WAN_3G_APN_00=${WAN_3G_APN_00:="gtnet"}
+cfg -a WAN_3G_USER_NAME_00=${WAN_3G_USER_NAME_00:=""}
+cfg -a WAN_3G_PASSWORD_00=${WAN_3G_PASSWORD_00:=""}
+cfg -a WAN_3G_AUTH_METHOD_00=${WAN_3G_AUTH_METHOD_00:="none"}
+#==================================================================
+cfg -a WAN_3G_PROFILE_NAME_01=${WAN_3G_PROFILE_NAME_01:="Profile1"}
+cfg -a WAN_3G_APN_01=${WAN_3G_APN_01:="internet"}
+cfg -a WAN_3G_USER_NAME_01=${WAN_3G_USER_NAME_01:=""}
+cfg -a WAN_3G_PASSWORD_01=${WAN_3G_PASSWORD_01:=""}
+cfg -a WAN_3G_AUTH_METHOD_01=${WAN_3G_AUTH_METHOD_01:="none"}
+#==================================================================
+cfg -a WAN_3G_PROFILE_NAME_02=${WAN_3G_PROFILE_NAME_02:="Profile2"}
+cfg -a WAN_3G_APN_02=${WAN_3G_APN_02:="internet"}
+cfg -a WAN_3G_USER_NAME_02=${WAN_3G_USER_NAME_02:=""}
+cfg -a WAN_3G_PASSWORD_02=${WAN_3G_PASSWORD_02:=""}
+cfg -a WAN_3G_AUTH_METHOD_02=${WAN_3G_AUTH_METHOD_02:="none"}
+#==================================================================
+cfg -a WAN_3G_PROFILE_NAME_03=${WAN_3G_PROFILE_NAME_03:="Profile3"}
+cfg -a WAN_3G_APN_03=${WAN_3G_APN_03:="internet"}
+cfg -a WAN_3G_USER_NAME_03=${WAN_3G_USER_NAME_03:=""}
+cfg -a WAN_3G_PASSWORD_03=${WAN_3G_PASSWORD_03:=""}
+cfg -a WAN_3G_AUTH_METHOD_03=${WAN_3G_AUTH_METHOD_03:="none"}
+#==================================================================
+cfg -a WAN_3G_PROFILE_NAME_04=${WAN_3G_PROFILE_NAME_04:="Profile4"}
+cfg -a WAN_3G_APN_04=${WAN_3G_APN_04:="internet"}
+cfg -a WAN_3G_USER_NAME_04=${WAN_3G_USER_NAME_04:=""}
+cfg -a WAN_3G_PASSWORD_04=${WAN_3G_PASSWORD_04:=""}
+cfg -a WAN_3G_AUTH_METHOD_04=${WAN_3G_AUTH_METHOD_04:="none"}
+#==================================================================
+# Show the current using profile
+cfg -a WAN_3G_CURRENT_PROFILE=${WAN_3G_CURRENT_PROFILE:="0"}
+#==================================================================
+# Add the maximum idle timeout = 300s = 5mins
+cfg -a WAN_3G_IDLE_TIMEOUT=${WAN_3G_IDLE_TIMEOUT:="300"}
+#==================================================================
+
+#Add by foxconn for fixing attach APN issue, 2016/06/14, Peter Li
+cfg -a WAN_3G_ATTACH_PROFILE_NAME=${WAN_3G_ATTACH_PROFILE_NAME:="Profile1"}
+cfg -r WAN_3G_ATTACH_APN_NAME
+cfg -r WAN_3G_ATTACH_USER_NAME
+cfg -r WAN_3G_ATTACH_PASSWORD
+cfg -r WAN_3G_ATTACH_AUTH_PREF
+cfg -a WAN_3G_ATTACH_IP_PREF=${WAN_3G_ATTACH_IP_PREF:="IPV4V6"}
+#End by foxconn for fixing attach APN issue, 2016/06/14, Peter Li
+
+# Now it's non-empty
+cfg -a WAN3G_GROUP_EMPTY=NO
+
+fi

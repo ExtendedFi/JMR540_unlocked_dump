@@ -1,0 +1,506 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Reliance Wireless Router</title>
+<link href="/css/stylesheet.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="/js/common.js" language="javascript"></script>
+<script type="text/javascript" src="/js/swipe.js" language="javascript"></script>
+<script>
+var refresh_time = "~~HTTP_GUI_REFRESH:300~";
+var userAgent = navigator.userAgent;
+var islogin  ="~*login:0~";
+
+function ResetTrafficDbMifi2()
+{
+	document.forms["myForm"].submit();
+}
+
+function refresh()
+{
+	window.location.reload();
+	setTimeout('refresh()', refresh_time*1000);
+}
+
+/* 20171128 - Wilson add for Mobile device start */
+function initDiv()
+{
+    document.getElementById("mDev").style.width = "99%";
+    document.getElementById("mSystem").style.width = "99%";
+    document.getElementById("mNW").style.width = "99%";
+    document.getElementById("mLTE").style.width = "99%";
+}
+function displayDivSub(divid)
+{
+    document.getElementById("mNW").style.display = "none";
+    document.getElementById("mDev").style.display = "none"; 
+    document.getElementById("mSystem").style.display = "none";
+    document.getElementById("mLTE").style.display = "none";
+    document.getElementById(divid).style.display = "block";
+}
+
+function initSwipe(focus, left, right)
+{
+    new Swipe(document.getElementById(focus), null, function(event, direction) {
+    	//event.preventDefault();
+    	
+    	switch (direction) {
+    		case "left":    			
+    			displayDivSub(left);
+                parent.loadingPage  = left;
+    			break;
+    		case "right":
+    			displayDivSub(right);
+                parent.loadingPage  = right;
+    			break;
+    	}
+    });
+}
+/* 20171128 - Wilson add for Mobile device end */
+
+function update_content()
+{
+	 setTimeout('refresh()', refresh_time*1000);
+	 if(islogin == "1")		
+		document.getElementById("traffic_reset_div").style.display = "block";
+	 else
+		document.getElementById("traffic_reset_div").style.display = "none";
+		 
+	 var sim_card_state = "~*sim_card_state~";
+	 if ( (sim_card_state == "Attached") || (sim_card_state == "Attached (Roaming)"))
+	 {
+		document.getElementById("Internet_DIV").style.display = "block";
+		var ecgi = "~*ecgi~";
+		document.getElementById("pDashEngineerInform_ecgiValue").innerHTML = ecgi;			
+	 }
+	 else
+	 {
+		 document.getElementById("Internet_DIV").style.display = "none";		  
+	 }	 
+
+	 document.getElementById("lSIMStatusValue").innerHTML = sim_card_state;	
+	 
+	 var wifi_enabled = "~~AP_ENABLE:1~";
+	 if(wifi_enabled != "0")
+	 {
+		document.getElementById("lWLANStatus").innerHTML = "Enabled";
+		var wifichannel  ="~*wifichannel:0~";	 
+		document.getElementById("lChannelNumber").innerHTML = wifichannel;	  
+
+		var wifi_channel = "~~AP_PRIMARY_CH~";
+		if(wifi_channel == "0")
+			document.getElementById("lAutoChannelStatus").innerHTML = "Enabled";
+		else
+			document.getElementById("lAutoChannelStatus").innerHTML = "Disabled";		
+	 }
+	 else
+	 {
+		 document.getElementById("lWLANStatus").innerHTML = "Disabled";
+		 document.getElementById("wlan_settings").style.display = "none";
+		 document.getElementById("pChannelNumber").style.display = "none";
+		 document.getElementById("lBandwidth").style.display = "none";
+		 document.getElementById("pSecurityMode").style.display = "none";
+		 document.getElementById("pSecurityMode").style.display = "none";
+	 }
+	  
+	 var imei = "~*imei:0~";
+	 var imsi = "~*imsi~";
+	 var msisdn = "~*msisdn~";
+	 var iccid = "~*iccid~";
+	 document.getElementById("pDashRouterImeiValue").innerHTML = imei;
+	 document.getElementById("lIMSI").innerHTML = imsi;
+	 document.getElementById("lMSISDN").innerHTML = msisdn;
+	 document.getElementById("lICCID").innerHTML = iccid;
+	 
+	 var ipv6Addr = document.getElementById("LIPV6AddValue").innerHTML;
+	 var ipv6gwAddr = document.getElementById("LIPV6GatewayValue").innerHTML;
+	 var ipv6dnsAddr = document.getElementById("LDNSIPV6Value").innerHTML;
+	 
+	 if(isMobileWeb() == 0)
+	 {
+		document.getElementById("pDashEngineerInform_globalCellValue").style.marginLeft = "5px";
+		document.getElementById("lDashCurConnValue").style.marginLeft = "5px";
+		
+		if(ipv6Addr.length > 35)
+			document.getElementById("LIPV6AddValue").style.fontSize = "12.8px";
+		else
+			document.getElementById("LIPV6AddValue").style.fontSize = "14px";
+			
+		if(ipv6gwAddr.length > 35)
+			document.getElementById("LIPV6GatewayValue").style.fontSize = "12.5px";
+		else
+			document.getElementById("LIPV6GatewayValue").style.fontSize = "14px";
+
+		if(ipv6dnsAddr.length > 35)
+			document.getElementById("LDNSIPV6Value").style.fontSize = "12.5px";
+		else
+			document.getElementById("LDNSIPV6Value").style.fontSize = "14px";			
+
+        /* 20171128 - Wilson add for Mobile device start */
+        document.getElementById("mNW").style.margin = "-1135px 24.9%";
+        document.getElementById("mDev").style.margin = "5px 49.8%";
+        document.getElementById("mSystem").style.margin = "-1135px 74.7%";
+        /* 20171128 - Wilson add for Mobile device end */
+	 }
+	 else
+	 {	
+	 if(ipv6Addr.length > 35)
+		document.getElementById("LIPV6AddValue").style.fontSize = "9.3px";
+	 else if(ipv6Addr.length > 31)
+		document.getElementById("LIPV6AddValue").style.fontSize = "10.3px";
+	 else if(ipv6Addr.length > 27)
+		document.getElementById("LIPV6AddValue").style.fontSize = "12px";
+	else
+		document.getElementById("LIPV6AddValue").style.fontSize = "14px";
+
+	 if(ipv6gwAddr.length > 35)
+		document.getElementById("LIPV6GatewayValue").style.fontSize = "9.3px";
+	 else if(ipv6gwAddr.length > 31)
+		document.getElementById("LIPV6GatewayValue").style.fontSize = "10.3px";
+	 else if(ipv6gwAddr.length > 27)
+		document.getElementById("LIPV6GatewayValue").style.fontSize = "12px";
+	else
+		document.getElementById("LIPV6GatewayValue").style.fontSize = "14px";			
+
+		
+	 if(ipv6dnsAddr.length > 35)
+		document.getElementById("LDNSIPV6Value").style.fontSize = "9.3px";
+	 else if(ipv6dnsAddr.length > 31)
+		document.getElementById("LDNSIPV6Value").style.fontSize = "10.3px";
+	 else if(ipv6dnsAddr.length > 27)
+		document.getElementById("LDNSIPV6Value").style.fontSize = "12px";
+	else
+		document.getElementById("LDNSIPV6Value").style.fontSize = "14px";			
+        /* 20171128 - Wilson add for Mobile device start */
+        initSwipe("mLTE", "mNW", "mSystem");
+        initSwipe("mNW", "mDev", "mLTE");
+        initSwipe("mDev", "mSystem", "mNW");
+        initSwipe("mSystem", "mLTE", "mDev");
+        initDiv();
+        displayDivSub(parent.loadingPage);
+        document.getElementById("mLTE_img").style.display = "inline-block";
+        document.getElementById("mNW_img").style.display = "inline-block";
+        document.getElementById("mDev_img").style.display = "inline-block";
+        document.getElementById("mSystem_img").style.display = "inline-block";
+        /* 20171128 - Wilson add for Mobile device end */
+	 }	 
+}
+function changePage(page)
+{  
+    displayDivSub(page);
+    parent.loadingPage = page;
+}
+</script>
+</head>
+<body onload="update_content();">
+<div class="homeBox" id="mLTE">
+<br>
+<div class="brdr1"> 
+    <h2 id="h2Internet">LTE<img id="mLTE_img" src="/images/rightarrow.png" height="12px" align="right" style="display: none;padding-right:22px;" onclick="changePage('mNW')"></h2>
+    </div>
+	<hr>
+	<div class="boxInner brdr2"> 
+	<a>
+	<div style="display: block;" id="Cellular">
+	<span class="heading1" id="h3IntrenetConnection">LTE Status</span>
+	<strong id="pSimStatus">Connection Status:</strong><br>
+	<label id="lSIMStatusValue"></label>
+	</div>
+	<br>
+	<div style="display: none;" id="Internet_DIV">
+		<strong id="pDashCurConnTime">Connection Time:</strong>
+		<label id="lDashCurConnValue">~*connection_time~</label>
+		<br><br>
+			<div id="divEngineerInform">
+	            <strong id="operatingMode">Operating Mode:</strong>
+				<label id="LoperMode">~*operation_mode:0~</label>
+				<br><br>  
+	            <strong id="pDashEngineerInform_bandTag">Operating Band:</strong>
+				<label id="pDashEngineerInform_bandValue" style="margin-left:5px;">~*operation_band:0~</label>
+				<br><br>
+	            <strong id="pDashEngineerInform_bandwidthTag">Bandwidth:</strong>
+				<label id="pDashEngineerInform_bandwidthValue" style="margin-left:5px;">~*lte_bandwidth~</label>
+				<br><br>
+	            <strong id="pDashEngineerInform_earfcnTag">EARFCN:</strong>
+				<label id="pDashEngineerInform_earfcnValue" style="margin-left:5px;">~*earfcn~</label>
+				<br><br>
+	            <strong id="pDashEngineerInform_phycellTag">Physical Cell ID:</strong>
+				<label id="pDashEngineerInform_phycellValue" style="margin-left:5px;">~*pcid~</label>
+				<br><br>
+	            <strong id="pDashAutoApn_plmnTag">PLMN:</strong>
+				<label id="pDashAutoApn_plmnValue" style="margin-left:5px;margin-bottom:5px;">~*plmn~</label>
+				<br><br>
+	            <strong id="pDashAutoApn_LteApnTag">APN in Use:</strong>
+				<label id="pDashAutoApn_LteApnValue" style="margin-left:5px;">~*apn_active~</label>
+				<br><br>
+				<strong id="pDashEngineerInform_globalCellTag">Global Cell ID:</strong>
+				<label id="pDashEngineerInform_globalCellValue" style="font-size:13px">~*eutra_global_cellid~</label>
+				<br><br>
+				<strong id="pDashEngineerInform_ecgiTag">ECGI:</strong>
+				<label id="pDashEngineerInform_ecgiValue" style="margin-left:5px;"></label>
+				<br><br>
+				<strong id="pDashEngineerInform_rsrpTag">RSRP:</strong>
+				<label id="pDashEngineerInform_rsrpValue" style="margin-left:5px;margin-bottom:5px;">~*rsrp~</label>
+				<br><br>          
+				<strong id="pDashEngineerInform_rsrqTag">RSRQ:</strong>
+				<label id="pDashEngineerInform_rsrqValue" style="margin-left:5px;">~*rsrq~</label>
+				<br><br>
+				<strong id="pDashEngineerInform_sinrTag">SINR:</strong>
+				<label id="pDashEngineerInform_sinrValue" style="margin-left:5px;">~*sinr~</label>
+				<br><br>
+				<strong id="SIPV4Address">IPv4 Address:</strong>
+				<br>
+				<label id="LIPV4AddValue">~*ipv4_addr~</label>
+				<br><br>
+				<strong id="SIPV4Netmask">IPv4 Subnet Mask:</strong>
+				<br>
+				<label id="LIPV4NetmaskValue">~*ipv4_mask~</label>
+				<br><br>
+				<strong id="SIPV4Gateway">IPv4 Default Gateway:</strong>
+				<br>
+				<label id="LIPV4GatewayValue">~*ipv4_gw~</label>
+				<br><br>
+				<strong id="SIPV4DNS">IPv4 DNS Server:</strong>
+				<br>
+				<label id="LDNSIPV4Value">~*ipv4_dns~</label>
+				<br><br>
+				<strong id="SIPV6Address">IPv6 Address:</strong>
+				<br>
+				<label id="LIPV6AddValue">~*ipv6_addr~</label>
+				<br><br>
+				<strong id="SIPV6PrefixLength">IPv6 Prefix Length:</strong>
+				<br>
+				<label id="LIPV6PrefixLength">~*ipv6_prefix_len~</label>
+				<br><br>
+				<strong id="SIPV6Gateway">IPv6 Default Gateway:</strong>
+				<br>
+				<label id="LIPV6GatewayValue">~*ipv6_gw~</label>
+				<br><br>
+				<strong id="SIPV6DNS">IPv6 DNS Server:</strong>
+				<br>
+				<label id="LDNSIPV6Value">~*ipv6_dns~</label>
+				<br>
+			</div>
+		</div>
+	</a></div>
+	<br>
+ </div>
+ <div class="homeBox" id="mNW" style="table-layout:fixed;word-wrap:break-word; word-break;break-all;">
+ <br>
+ <div class="brdr1"> 
+	    <h2 id="h2Router">Network Information<img id="mNW_img" src="/images/rightarrow.png" height="12px" align="right" style="display: none;padding-right:22px;" onclick="changePage('mDev')"></h2>
+</div>
+	<hr>
+	<div class="boxInner brdr2">
+    <a>
+		<span class="heading1" id="h3WirelessS">Wireless Settings</span>
+		<strong id="h3Wireless">WiFi Status:</strong><br>
+		<label id="lWLANStatus"></label><br><br>
+		<strong id="pWirelessNw">SSID:</strong><br>
+		<label id="lWirelessNwValue">~~AP_SSID~</label>
+		<br><br>		
+		<strong id="pLanOperMode">LAN Operating Mode:</strong>
+		<br>
+		<label id="lLanOperMode">~*dhcp~</label>
+		<br><br>
+		<strong id="pDashRouterMask">Subnet Mask:</strong><br>
+		<label id="lRouterMask">~*routermask~</label>
+		<br><br>
+		<strong id="pDashRouterLANIP">Gateway IP:</strong><br>
+		<label id="lRouterIP">~*routerIP~</label> 
+		<br><br>
+		<strong id="pDashRouterMAC">MAC Address:</strong><br>
+		<label id="lRouterMAC">~*ap_macAddress~</label>
+		<br><br>
+		<div style="display: block;" id="wlan_settings">
+		<strong id="pAutoChannelStatus" style="font-size:13.4px">Automatic Channel Selection Status:</strong>
+		<br>
+		<label id="lAutoChannelStatus"></label>
+		<br><br>
+		<strong id="pChannelNumber">WiFi Channel:</strong>
+		<br>
+		<label id="lChannelNumber"></label> 
+		<br><br>
+		<strong id="lBandwidth">WiFi Channel Bandwidth:</strong>
+		<br>
+		<label id="lBandwid">20MHz</label><br><br>
+		<strong id="pSecurityMode">Wireless Security:</strong>
+		<br>
+		<label id="lSecurityModeValue">~~AP_SECMODE~</label>
+		<br><br>
+		</div>
+		<strong id="h3ConnDevice">Number of clients attached:</strong>
+		<br>
+		<label id="lConnDeviceValue">~*connDeviceCount~</label>
+		<br>
+		</a>		
+		<form name="myForm" method="POST" action="/cgi-bin/en-jio/mStatus_clearStatistic.html">
+		<a>
+		<input type="hidden" name="RequestVerifyToken" value="~*token~">
+		<span class="heading1" id="h3IntConn">Total Data Used</span>
+		<strong id="pSentPackets">UL:</strong><br>
+		<label id="lsentPackets">~*sentPackets:0 KB~</label><br><br>
+		<strong id="pRecPackets">DL:</strong><br>
+		<label id="lRecPackets">~*recPackets:0 KB~</label>
+		<br>
+		</a>
+		<br>
+		<span class="boxInner2" id="traffic_reset_div" style="display: none;">
+		<div class="reset">
+		<label class="link1" id="resetTrafficDbMifi2" onclick="ResetTrafficDbMifi2()"><a href="#.">Reset</a></label>
+		</div>
+		</span>
+		</form>		
+	    </div>
+		<br>		
+ </div>
+ <div class="homeBox" id="mDev">
+ <br>
+ <div class="brdr1"> 
+	<h2 id="h2HomeNw">Device Details<img id="mDev_img" src="/images/rightarrow.png" height="12px" align="right" style="display: none;padding-right:22px;" onclick="changePage('mSystem')"></h2>
+</div>
+<hr>
+    <div class="boxInner brdr2" id="wlan_enble">		
+			<a>
+			<span class="heading1" id="lDnsUrl">Connection URL</span>
+			<strong id="lDnsAddr">DNS Address:</strong><br>
+			<label id="tdns_addr"> http://jiofi.local.html</label>         
+			</a>
+			<a>
+			<span class="heading1" id="lDeviceTime">Device Time</span>
+			<strong id="llST">Current Local Time:</strong><br>
+			<label id="urrenttime">~*current_time:0~</label>
+			</a>
+			<a>
+			<span class="heading1" id="h3RouterInfo">Device Information</span>
+			<strong id="pODM">ODM:</strong><br>
+			<label id="lODM">Foxconn</label>
+			<br><br>
+			<strong id="pProductID">Product ID:</strong>
+			<br>
+			<label id="lProductID">JMR540</label>
+			<br><br>
+			<strong id="pOUI">OUI:</strong>
+			<br>
+			<label id="lOUI">~*OUI~</label>
+			<br><br>
+			<strong id="pDeviceMake">Device Make:</strong>
+			<br>
+			<label>~~DEVICE_NAME~</label><br><br>
+			<strong id="pSerialNum">Serial Number:</strong>
+			<br>
+			<label id="lSerialNum">~*serialnum:0~</label>
+			<br><br>
+			<strong id="pDashRouterImeiTag">IMEI:</strong>
+			<br>
+			<label id="pDashRouterImeiValue"></label> 
+			<br><br>
+			<strong id="pImsi">IMSI:</strong>
+			<br>
+			<label id="lIMSI"></label> 
+			<br><br>
+			<strong id="pMSISDN">MSISDN:</strong>
+			<br>
+			<label id="lMSISDN"></label> 
+			<br><br>
+			<strong id="pICCID">ICCID:</strong>
+			<br>
+			<label id="lICCID"></label> 
+			<br><br>			
+			<strong id="pDashBetteryInfo">Battery Charging:</strong>
+			<br>
+			<label id="lDashChargeStatus">~*battery_state:No Battery~</label>
+			<br><br>
+			<strong id="pDashBetteryVol">Battery Capacity:</strong>
+			<br>
+			<label id="lDashBatteryQuantity">~*battery_capacity~</label>
+			<br><br>
+			<strong id="lPrimaryMacId">Primary MAC ID:</strong>		
+			<br>
+			<label id="lPrimaryMacIdValue">~*ap_macAddress~</label>
+			<br><br>			
+			<strong id="lPrimaryHostName">Host Name:</strong>
+			<br>
+			<label id="lPrimaryHostNameValue">~*wan_hostname~</label>			
+			<br><br>			
+			<strong id="lFrequencyBands">Frequency Bands Supported:</strong>
+			<br>
+			<label id="lFrequencyBandsValue">B3,&nbsp;B5&nbsp;and&nbsp;B40</label>
+			<br><br>
+			<strong id="pSoftVersion">Firmware Version:</strong><br>
+			<label id="lSoftVersion">~*softversion~</label> 
+			<br><br>
+			<strong id="lCurrentSoftwareDate">Firmware Creation Date:</strong>
+			<br>
+			<label id="lCurrentSoftwareDateValue">~*currentsoftwaredate~</label>
+			<br><br>
+			<strong id="pHardVersion">Hardware Version:</strong>
+			<br>
+			<label id="lHardVersion">~*hw_ver~</label>		
+			</a>	
+	</div>
+	<br>
+</div>
+<div class="homeBox2" id="mSystem">
+<br>
+<div class="brdr3">
+	<h2 id="h2SystemPer">System Performance<img id="mSystem_img" src="/images/rightarrow.png" height="12px" align="right" style="display: none;padding-right:22px;" onclick="changePage('mLTE')"></h2>
+</div>
+<hr style="height:1px;border:none;color:#D8D8D8;background-color:#D8D8D8;width:100%">
+    <div class="boxInner brdr2" id="system_info">		
+			<a>
+			<span class="heading1" id="ppeformanceMonitorPeriodTag">Monitor Period Configuration</span>
+			<strong id="ppeformanceMonitorPeriod">System Perf. Monitor Period:</strong><br>
+			<label id="lpeformanceMonitorPeriod"> 30s</label>    
+			<br><br>
+			<strong id="pcpuMaxUsage">CPU Max. Usage:</strong>
+			<br>
+			<label id="lcpuMaxUsage">~*maxCpuUsage~</label>
+			<br><br>
+			<strong id="pcpuMinUsage">CPU Min. Usage:</strong>
+			<br>
+			<label id="lcpuMinUsage">~*minCpuUsage~</label>
+			<br><br>
+			<strong id="pmaxMemoryUsage">Memory Max. Usage:</strong>
+			<br>
+			<label id="lmaxMemoryUsage">~*maxMemoryUsage~</label>			
+			<br><br>
+			<strong id="pminMemoryUsage">Memory Min. Usage:</strong>
+			<br>
+			<label id="lminMemoryUsage">~*minMemoryUsage~</label>
+			</a>			
+			<a>
+			<span class="heading1" id="pulDataRateTag">Uplink Data Rate</span>			
+			<strong id="pulCurrentDataRate">Current Data Rate:</strong>
+			<br>
+			<label id="lulCurrentDataRate">~*curr_ul_datarate~</label>			
+			<br>
+			<strong id="pulMaxDataRate">Max Data Rate:</strong>
+			<br>
+			<label id="lulMaxDataRate">~*max_ul_datarate~</label> 
+			<br><br>
+			<strong id="pulMinDataRate">Min Data Rate:</strong>
+			<br>
+			<label id="lulMinDataRate">~*min_ul_datarate~</label>			
+			</a>
+			
+			<a>
+			<span class="heading1" id="pdlDataRateTag">Downlink Data Rate</span>			
+			<strong id="pdlCurrentDataRate">Current Data Rate:</strong>
+			<br>
+			<label id="ldlCurrentDataRate">~*curr_dl_datarate~</label>			
+			<br>
+			<strong id="pdlMaxDataRate">Max Data Rate:</strong>
+			<br>
+			<label id="ldlMaxDataRate">~*max_dl_datarate~</label> 
+			<br><br>
+			<strong id="pdlMinDataRate">Min Data Rate:</strong>
+			<br>
+			<label id="ldlMinDataRate">~*min_dl_datarate~</label>
+			
+			</a>
+	</div>
+	<br>
+</div>
+</body>
+</html>

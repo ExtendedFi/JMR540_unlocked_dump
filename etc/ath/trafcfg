@@ -1,0 +1,37 @@
+###################################################################################
+##  trafcfg
+## 
+##  Configuration file for Traffic Monitor.
+##  TRAF_GROUP_EMPTY is to avoid duplicate default setting overhead
+##  Put configuration file under /etc/ath/ with filename as *cfg (e.g. wificfg)
+###################################################################################
+
+TRAF_GROUP_EMPTY=`cfg -v TRAF_GROUP_EMPTY`
+
+if [ "$TRAF_GROUP_EMPTY" != "NO" ]; then
+
+  if [ "$TRAF_GROUP_EMPTY" = "PARTIAL" ]; then
+  
+  # Get the current settings from flash/cache area
+  cfg -e > /tmp/vars.$$
+  . /tmp/vars.$$
+  rm /tmp/vars.$$
+  
+  fi
+
+# Set config items as default values
+cfg -a TM_DURATION=${TM_DURATION:="5"}
+cfg -a TM_SM_PKT_THRES=${TM_SM_PKT_THRES:="5"}
+cfg -a TM_PM_PKT_THRES=${TM_PM_PKT_THRES:="5"}
+cfg -a TM_WIFIHO_PKT_THRES=${TM_WIFIHO_PKT_THRES:="5"}
+cfg -a TM_WIFIAP_PKT_THRES=${TM_WIFIAP_PKT_THRES:="5"}
+cfg -a TM_SM_TIMEOUT=${TM_SM_TIMEOUT:="5"}
+cfg -a TM_WIFIHO_TIMEOUT=${TM_WIFIHO_TIMEOUT:="5"}
+cfg -a TM_WIFIAP_TIMEOUT=${TM_WIFIAP_TIMEOUT:="5"}
+cfg -a TM_PM_TIMEOUT=${TM_PM_TIMEOUT:="5"}
+cfg -a TM_WAN_PROBE_THRES=${TM_WAN_PROBE_THRES:="2"}
+
+# Now it's non-empty
+cfg -a TRAF_GROUP_EMPTY=NO
+
+fi
